@@ -1,4 +1,4 @@
-module github.com/faustbrian/golib/pkg/workflow
+module github.com/faustbrian/go-workflow
 
 go 1.26.6
 

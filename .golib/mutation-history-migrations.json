@@ -1,0 +1,51 @@
+{
+  "schema_version": 3,
+  "reason": "Exact mutation checkpoints retained across history rewrites only when the approved old and replacement package input fingerprints, tool version, and report digest match.",
+  "verifier_migration_review": {
+    "gremlins_verifier_sha256": "9a9499ff68a8dfd49a0be7995590297a8ee563a1aa226bfd8b9361dc53058108",
+    "reason": "Each listed checkpoint was executed with the complete current Gremlins semantic patch set introduced by ac300cf3; the four omitted checkpoints require fresh campaigns.",
+    "reviewed_at": "2026-08-20"
+  },
+  "verifier_migrations": [
+    {
+      "execution_revision": "dd07cf92586a4d0459f8692f26e2a9aac70552f1",
+      "gate_input_digest": "079208bf37269fe9d3f928f43687967b9b0b52040083226450fc0073d80c5a12",
+      "gremlins_verifier_sha256": "9a9499ff68a8dfd49a0be7995590297a8ee563a1aa226bfd8b9361dc53058108",
+      "gremlins_version": "v0.6.0",
+      "module": ".",
+      "package": ".",
+      "report_sha256": "28932758498e0d91ce2e258985136c82472df549e13a4872f0a96e8621f7e420"
+    },
+    {
+      "execution_revision": "dd07cf92586a4d0459f8692f26e2a9aac70552f1",
+      "gate_input_digest": "718a02e0e65afdb11d41af91ab4396c920928871509759a312d7d37635ae2275",
+      "gremlins_verifier_sha256": "9a9499ff68a8dfd49a0be7995590297a8ee563a1aa226bfd8b9361dc53058108",
+      "gremlins_version": "v0.6.0",
+      "module": ".",
+      "package": "postgres",
+      "report_sha256": "5b5bd204cbd3651c28ba53702e0588e699d24edeeb00898a27fe38f5c5781ffe"
+    }
+  ],
+  "entries": [
+    {
+      "module": ".",
+      "package": ".",
+      "execution_revision": "dd07cf92586a4d0459f8692f26e2a9aac70552f1",
+      "gate_input_digest": "079208bf37269fe9d3f928f43687967b9b0b52040083226450fc0073d80c5a12",
+      "replacement_gate_input_digest": "7d6ae282f3b737fb3b2fb48478112012733a172867dea3e5efc0f3c367442372",
+      "gremlins_version": "v0.6.0",
+      "gremlins_verifier_sha256": "9a9499ff68a8dfd49a0be7995590297a8ee563a1aa226bfd8b9361dc53058108",
+      "report_sha256": "28932758498e0d91ce2e258985136c82472df549e13a4872f0a96e8621f7e420"
+    },
+    {
+      "module": ".",
+      "package": "postgres",
+      "execution_revision": "dd07cf92586a4d0459f8692f26e2a9aac70552f1",
+      "gate_input_digest": "718a02e0e65afdb11d41af91ab4396c920928871509759a312d7d37635ae2275",
+      "replacement_gate_input_digest": "1b8692c03ea7709d3b09c95dba8e074fdfe2006e23fcaa1c79474e8834833654",
+      "gremlins_version": "v0.6.0",
+      "gremlins_verifier_sha256": "9a9499ff68a8dfd49a0be7995590297a8ee563a1aa226bfd8b9361dc53058108",
+      "report_sha256": "5b5bd204cbd3651c28ba53702e0588e699d24edeeb00898a27fe38f5c5781ffe"
+    }
+  ]
+}

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	workflow "github.com/faustbrian/golib/pkg/workflow"
+	workflow "github.com/faustbrian/go-workflow"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	workflow "github.com/faustbrian/golib/pkg/workflow"
+	workflow "github.com/faustbrian/go-workflow"
 )
 
 func TestActivityWorkProcessorPersistsStartBeforeExecutingAndPersistsOutcome(t *testing.T) {

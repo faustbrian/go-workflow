@@ -1,7 +1,11 @@
-.PHONY: interoperability soak
+SHELL := /usr/bin/env bash
 
-interoperability:
-	bash ./scripts/check-interoperability.sh
+.PHONY: check ci inventory repository-check
 
-soak:
-	bash ./scripts/check-soak.sh
+check:
+	./.golib/scripts/with-disposable-go-cache.sh ./.golib/scripts/run-modules.sh check --all
+
+ci: repository-check check
+
+inventory repository-check:
+	./.golib/scripts/repository-check.sh

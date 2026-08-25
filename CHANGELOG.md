@@ -5,6 +5,8 @@ and releases use Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-25
+
 ### Documentation
 
 - Link the package README to the repository-wide Golib documentation portal.
@@ -104,9 +106,13 @@ and releases use Semantic Versioning.
 
 ### Changed
 
+- Publish the module from its standalone `github.com/faustbrian/go-workflow` identity while preserving its documented API and behavior.
 - Upgrade `golang.org/x/text` to v0.41.0 so the dependency graph no longer
   contains GO-2026-5970.
 - PostgreSQL commits now archive completed, failed, cancelled, terminated, and
   continued-as-new instances atomically with their terminal history.
 - `StepChild` definitions now require `ChildDefinition`; existing child steps
   must pin the exact registered child name, version, and fingerprint.
+
+[Unreleased]: https://github.com/faustbrian/go-workflow/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/faustbrian/go-workflow/releases/tag/v1.0.0

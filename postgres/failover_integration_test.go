@@ -14,7 +14,7 @@ import (
 	dockercontainer "github.com/moby/moby/api/types/container"
 	dockernetwork "github.com/moby/moby/api/types/network"
 
-	workflow "github.com/faustbrian/golib/pkg/workflow"
+	workflow "github.com/faustbrian/go-workflow"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
 	tcexec "github.com/testcontainers/testcontainers-go/exec"

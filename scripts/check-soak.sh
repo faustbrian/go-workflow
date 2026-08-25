@@ -22,17 +22,17 @@ export WORKFLOW_SOAK_BATCHES="${WORKFLOW_SOAK_BATCHES:-72}"
 
 run_root="${module_root}"
 if [[ "${WORKFLOW_SOAK_LIVE_TREE:-}" != "1" ]]; then
-	if [[ -n "$(git -C "${repository_root}" status --porcelain --untracked-files=all -- pkg/workflow)" ]]; then
-		printf 'workflow soak requires a clean committed pkg/workflow snapshot\n' >&2
+	if [[ -n "$(git -C "${repository_root}" status --porcelain --untracked-files=all -- .)" ]]; then
+		printf 'workflow soak requires a clean committed . snapshot\n' >&2
 		exit 1
 	fi
 	execution_revision="$(git -C "${repository_root}" rev-parse HEAD)"
 	input_digest="$(
-		git -C "${repository_root}" ls-tree -r --full-tree "${execution_revision}" -- pkg/workflow |
+		git -C "${repository_root}" ls-tree -r --full-tree "${execution_revision}" -- . |
 			shasum -a 256 |
 			awk '{print $1}'
 	)"
-	git -C "${repository_root}" archive "${execution_revision}" pkg/workflow |
+	git -C "${repository_root}" archive "${execution_revision}" . |
 		tar -x -C "${task_root}"
 	run_root="${task_root}/pkg/workflow"
 	printf 'workflow_soak_input revision=%s input_digest=%s batches=%s\n' \
