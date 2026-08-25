@@ -2,7 +2,6 @@
 set -euo pipefail
 
 module_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-repository_root="$(cd "${module_root}/../.." && pwd)"
 task_root="$(mktemp -d)"
 task_gocache="$(mktemp -d)"
 task_modcache="$(mktemp -d)"
@@ -24,13 +23,9 @@ export GOWORK=off
 
 go mod init workflow-interoperability.invalid/test
 go mod edit -go=1.26.6
-go mod edit -require=github.com/faustbrian/go-workflow@v0.0.0
-go mod edit -require=github.com/faustbrian/go-transactional-outbox@v0.0.0
-go mod edit -require=github.com/faustbrian/go-kafka@v0.0.0
-go mod edit -require=github.com/faustbrian/go-transactional-outbox/adapters/gokafka@v0.0.0
-go mod edit -replace="github.com/faustbrian/go-workflow=${module_root}"
-go mod edit -replace="github.com/faustbrian/go-transactional-outbox=${repository_root}/pkg/outbox"
-go mod edit -replace="github.com/faustbrian/go-kafka=${repository_root}/pkg/kafka"
-go mod edit -replace="github.com/faustbrian/go-transactional-outbox/adapters/gokafka=${repository_root}/pkg/outbox/adapters/gokafka"
+go mod edit -require=github.com/faustbrian/go-workflow@v1.0.0
+go mod edit -require=github.com/faustbrian/go-transactional-outbox@v1.0.0
+go mod edit -require=github.com/faustbrian/go-kafka@v1.0.0
+go mod edit -require=github.com/faustbrian/go-transactional-outbox/adapters/gokafka@v1.0.0
 go mod tidy
 go test ./... -count=1

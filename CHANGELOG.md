@@ -5,6 +5,11 @@ and releases use Semantic Versioning.
 
 ## [Unreleased]
 
+### Fixed
+
+- Verify workflow, Kafka, and outbox interoperability through versioned module
+  archives without former-monorepo replacement paths.
+
 ### Changed
 
 - Exclude intentional nested modules from root local-proxy archives so local,
