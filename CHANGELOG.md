@@ -12,6 +12,10 @@ and releases use Semantic Versioning.
 
 ### Changed
 
+- Upgrade `moby/go-archive` and `golang.org/x/crypto` to their current
+  security-fixed releases and reconcile the resulting indirect dependency
+  graph.
+
 - Exclude intentional nested modules from root local-proxy archives so local,
   bootstrap, CI, and public module checksums describe the same source
   boundary.
