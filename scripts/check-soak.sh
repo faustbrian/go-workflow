@@ -6,17 +6,20 @@ repository_root="$(cd "${module_root}/../.." && pwd)"
 task_root="$(mktemp -d)"
 task_gocache="$(mktemp -d)"
 task_modcache="$(mktemp -d)"
+task_gotmpdir="$(mktemp -d)"
 
 cleanup() {
-	chmod -R u+w "${task_root}" "${task_gocache}" "${task_modcache}" 2>/dev/null || true
+	chmod -R u+w "${task_root}" "${task_gocache}" "${task_modcache}" "${task_gotmpdir}" 2>/dev/null || true
 	find "${task_root}" -depth -delete
-    find "${task_gocache}" -depth -delete
+	find "${task_gocache}" -depth -delete
 	find "${task_modcache}" -depth -delete
+	find "${task_gotmpdir}" -depth -delete
 }
 trap cleanup EXIT
 
 export GOCACHE="${task_gocache}"
 export GOMODCACHE="${task_modcache}"
+export GOTMPDIR="${task_gotmpdir}"
 export GOWORK=off
 export WORKFLOW_SOAK_BATCHES="${WORKFLOW_SOAK_BATCHES:-72}"
 

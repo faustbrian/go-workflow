@@ -58,7 +58,11 @@
       "test_tags": [
         "integration"
       ],
-      "interoperability_tools": [],
+      "interoperability_tools": [
+        "github.com/faustbrian/go-transactional-outbox@v1.0.0",
+        "github.com/faustbrian/go-kafka@v1.0.0",
+        "github.com/faustbrian/go-transactional-outbox/adapters/gokafka@v1.0.0"
+      ],
       "specifications": [],
       "conformance_corpora": [],
       "provenance": [],
