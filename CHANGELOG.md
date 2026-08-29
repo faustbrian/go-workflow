@@ -5,6 +5,12 @@ and releases use Semantic Versioning.
 
 ## [Unreleased]
 
+### Changed
+
+- Use the pinned `go-library-tools` release for repository verification while
+  retaining repository-owned evidence, API baselines, and interoperability
+  fixtures.
+
 ## [1.0.0] - 2026-08-25
 
 ### Fixed

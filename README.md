@@ -257,5 +257,5 @@ bus, scheduler, service container, or package-initialization registration.
 
 ## Ecosystem
 
-Use the [Golib documentation portal](https://github.com/faustbrian/golib/blob/main/docs/index.md)
+Use the [Go Library Tools documentation portal](https://github.com/faustbrian/go-library-tools/blob/v1.0.6/docs/README.md)
 to choose companion packages, supported stacks, recipes, and operations guidance.

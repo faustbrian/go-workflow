@@ -1,0 +1,113 @@
+schema_version: 1
+tool_version: v1.0.6
+tool_checksums_sha256: d43e6a07573371e95d5fcf47c94e78f9983e903ef4eaab8e39f9bfc5dc224525
+manifest:
+  modules: modules.json
+  packages: packages.json
+evidence:
+  root: .verification
+mutation:
+  root: .verification/mutation
+  imports:
+    - module: .
+      archive: .verification/mutation/bootstrap/root.zip
+      ledger: .verification/mutation/migration-ledger.json
+api:
+  baselines:
+    - module: .
+      mode: apidiff
+      path: api/baseline.txt
+operations:
+  - module: .
+    gate: fuzz
+    steps:
+      - type: go-test
+        packages: [.]
+        fuzz: '^FuzzActivityRequestValidation$'
+        budget: 10000x
+        timeout: 20m
+      - type: go-test
+        packages: [.]
+        fuzz: '^FuzzActivityOutcomeValidation$'
+        budget: 10000x
+        timeout: 20m
+      - type: go-test
+        packages: [.]
+        fuzz: '^FuzzActivityDispatchBoundaries$'
+        budget: 10000x
+        timeout: 20m
+      - type: go-test
+        packages: [.]
+        fuzz: '^FuzzChildDispatchBoundaries$'
+        budget: 10000x
+        timeout: 20m
+      - type: go-test
+        packages: [.]
+        fuzz: '^FuzzChildStartRequestBoundaries$'
+        budget: 10000x
+        timeout: 20m
+      - type: go-test
+        packages: [.]
+        fuzz: '^FuzzCompensationDispatchBoundaries$'
+        budget: 10000x
+        timeout: 20m
+      - type: go-test
+        packages: [.]
+        fuzz: '^FuzzHistoryEventValidation$'
+        budget: 10000x
+        timeout: 20m
+      - type: go-test
+        packages: [.]
+        fuzz: '^FuzzActivityHistoryEventValidation$'
+        budget: 10000x
+        timeout: 20m
+      - type: go-test
+        packages: [.]
+        fuzz: '^FuzzOperatorAuditBoundaries$'
+        budget: 10000x
+        timeout: 20m
+      - type: go-test
+        packages: [.]
+        fuzz: '^FuzzPendingWorkValidation$'
+        budget: 10000x
+        timeout: 20m
+      - type: go-test
+        packages: [.]
+        fuzz: '^FuzzTransitionValidation$'
+        budget: 10000x
+        timeout: 20m
+      - type: go-test
+        packages: [.]
+        fuzz: '^FuzzSignalAcceptanceBoundaries$'
+        budget: 10000x
+        timeout: 20m
+      - type: go-test
+        packages: [.]
+        fuzz: '^FuzzWorkLeaseBoundaries$'
+        budget: 10000x
+        timeout: 20m
+      - type: go-test
+        packages: [.]
+        fuzz: '^FuzzWorkDecisionBoundaries$'
+        budget: 10000x
+        timeout: 20m
+      - type: go-test
+        packages: [./postgres]
+        fuzz: '^FuzzScanHistoryEvent$'
+        budget: 10000x
+        timeout: 20m
+  - module: .
+    gate: benchmark
+    steps:
+      - type: go-test
+        packages: [./...]
+        benchmark: .
+        budget: 1s
+        timeout: 20m
+  - module: .
+    gate: interoperability
+    steps:
+      - type: make
+        makefile: verification/package.mk
+        target: interoperability
+        timeout: 20m
