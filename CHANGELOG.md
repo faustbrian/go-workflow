@@ -7,9 +7,17 @@ and releases use Semantic Versioning.
 
 ### Changed
 
-- Use the pinned `go-library-tools` release for repository verification while
-  retaining repository-owned evidence, API baselines, and interoperability
-  fixtures.
+- Use the pinned `go-library-tools` v1.4.0 release for repository verification
+  while retaining repository-owned evidence, API baselines, and
+  interoperability fixtures.
+- Publish schema-v2 cohesion metadata and keep repository, cohesion, online
+  specification, and module verification aligned across local and immutable
+  shared CI gates.
+
+### Documentation
+
+- Link workflow guidance to the versioned Golib ecosystem design language and
+  package-selection index.
 
 ## [1.0.0] - 2026-08-25
 

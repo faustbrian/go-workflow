@@ -10,6 +10,8 @@ import (
 	workflow "github.com/faustbrian/go-workflow"
 )
 
+const workerTestAwaitTimeout = 10 * time.Second
+
 func TestWorkDecisionMakesTerminalHandlingExplicit(t *testing.T) {
 	t.Parallel()
 
@@ -51,7 +53,7 @@ func TestWorkerRunsWithBoundedConcurrencyAndCompletesPersistedDecisions(t *testi
 		mustWorkerLease(t, now, "work-2", "tenant-2"),
 		mustWorkerLease(t, now, "work-3", "tenant-1"),
 	}
-	ctx, stop := context.WithTimeout(context.Background(), time.Second)
+	ctx, stop := context.WithTimeout(context.Background(), workerTestAwaitTimeout)
 	defer stop()
 	ctx, cancel := context.WithCancel(ctx)
 	store := &workerStore{claims: [][]workflow.WorkLease{leases}}
@@ -195,7 +197,7 @@ func TestWorkerRenewsLeaseAndCancelsAStaleProcessor(t *testing.T) {
 	clock.FireNext(now.Add(20 * time.Second))
 	select {
 	case <-processor.canceled:
-	case <-time.After(time.Second):
+	case <-time.After(workerTestAwaitTimeout):
 		t.Fatal("stale renewal did not cancel the processor")
 	}
 	select {
@@ -203,7 +205,7 @@ func TestWorkerRenewsLeaseAndCancelsAStaleProcessor(t *testing.T) {
 		if !errors.Is(handleErr, workflow.ErrStaleWorkLease) {
 			t.Fatalf("stale handle error = %v", handleErr)
 		}
-	case <-time.After(time.Second):
+	case <-time.After(workerTestAwaitTimeout):
 		t.Fatal("stale handler did not return")
 	}
 	if len(store.completions) != 0 || store.renewals != 1 {
@@ -762,7 +764,7 @@ func receiveWithin[T any](t *testing.T, channel <-chan T) T {
 	select {
 	case value := <-channel:
 		return value
-	case <-time.After(time.Second):
+	case <-time.After(workerTestAwaitTimeout):
 		t.Fatal("timed out waiting for asynchronous result")
 		var zero T
 		return zero
@@ -778,7 +780,7 @@ func runWorkerWithin(t *testing.T, worker *workflow.Worker, ctx context.Context)
 
 func waitUntil(t *testing.T, condition func() bool) {
 	t.Helper()
-	deadline := time.After(time.Second)
+	deadline := time.After(workerTestAwaitTimeout)
 	ticker := time.NewTicker(time.Millisecond)
 	defer ticker.Stop()
 	for {

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "repository": "github.com/faustbrian/go-workflow",
+  "module": ".",
+  "package": ".",
+  "gate": "mutation",
+  "input_digest": "sha256:a19ad4dab2ae1e2b90490ce497913cb30c2922584b3eb164543773d6fd68d1f8",
+  "verifier_digest": "sha256:9a9499ff68a8dfd49a0be7995590297a8ee563a1aa226bfd8b9361dc53058108",
+  "result": "passed",
+  "report_digest": "sha256:e0d7038976e7e14c7b0bf88c4beab9330832038a5dcb94929a8b70ff484a8719",
+  "environment": {
+    "CGO_ENABLED": "1",
+    "GOARCH": "arm64",
+    "GOOS": "darwin",
+    "GOVERSION": "go1.26.6",
+    "gremlins_binary_sha256": "sha256:e05bf25d661b16ab96d6f2e17aed481d393930e0f24205cc341b010f887368a0"
+  },
+  "completed_at": "2026-09-03T17:55:28.674316Z"
+}
