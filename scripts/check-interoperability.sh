@@ -29,6 +29,6 @@ go mod edit -go=1.26.6
 go mod edit -require=github.com/faustbrian/go-workflow@v1.0.0
 go mod edit -require=github.com/faustbrian/go-transactional-outbox@v1.0.0
 go mod edit -require=github.com/faustbrian/go-kafka@v1.0.0
-go mod edit -require=github.com/faustbrian/go-transactional-outbox/adapters/gokafka@v1.0.0
+go mod edit -require=github.com/faustbrian/go-transactional-outbox/adapters/kafka@v1.0.0
 go mod tidy
 go test ./... -count=1

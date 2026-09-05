@@ -61,7 +61,7 @@
       "interoperability_tools": [
         "github.com/faustbrian/go-transactional-outbox@v1.0.0",
         "github.com/faustbrian/go-kafka@v1.0.0",
-        "github.com/faustbrian/go-transactional-outbox/adapters/gokafka@v1.0.0"
+        "github.com/faustbrian/go-transactional-outbox/adapters/kafka@v1.0.0"
       ],
       "specifications": [],
       "conformance_corpora": [],
@@ -201,7 +201,7 @@
           "github.com/faustbrian/go-cloudevents/adapters/golib",
           "github.com/faustbrian/go-kafka",
           "github.com/faustbrian/go-transactional-outbox",
-          "github.com/faustbrian/go-transactional-outbox/adapters/gokafka"
+          "github.com/faustbrian/go-transactional-outbox/adapters/kafka"
         ],
         "adapters": [
           "github.com/faustbrian/go-workflow/postgres"

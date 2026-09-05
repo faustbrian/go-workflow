@@ -12,7 +12,7 @@ import (
 
 	"github.com/faustbrian/go-kafka"
 	"github.com/faustbrian/go-transactional-outbox"
-	"github.com/faustbrian/go-transactional-outbox/adapters/gokafka"
+	gokafka "github.com/faustbrian/go-transactional-outbox/adapters/kafka"
 	outboxpostgres "github.com/faustbrian/go-transactional-outbox/postgres"
 	workflow "github.com/faustbrian/go-workflow"
 	workflowpostgres "github.com/faustbrian/go-workflow/postgres"

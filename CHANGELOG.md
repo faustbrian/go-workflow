@@ -7,6 +7,10 @@ and releases use Semantic Versioning.
 
 ### Changed
 
+- Migrate the clean-consumer Kafka interoperability fixture from the deprecated
+  transactional-outbox `adapters/gokafka` module to the target-oriented
+  `adapters/kafka` v1.0.0 successor while preserving the established selector
+  and publisher behavior through an explicit import alias.
 - Use the pinned `go-library-tools` v1.4.0 release for repository verification
   while retaining repository-owned evidence, API baselines, and
   interoperability fixtures.
