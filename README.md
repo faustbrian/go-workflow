@@ -15,10 +15,10 @@ sagas. Definitions have stable names and immutable versions, and instances are
 expected to persist the exact definition name, version, and fingerprint that
 created them.
 
-The module is under active development. The current API covers definition
-compilation, explicit version migrations, immutable lifecycle history, and
-deterministic replay. It also defines bounded explicit activity attempts and
-unknown-outcome semantics, including replay of persisted attempt starts,
+The stable v1 API covers definition compilation, explicit version migrations,
+immutable lifecycle history, and deterministic replay. It also defines bounded
+explicit activity attempts and unknown-outcome semantics, including replay of
+persisted attempt starts,
 outcomes, and bounded retry admission times. Durable work can be atomically
 claimed with bounded leases, monotonically increasing fencing tokens, crash
 recovery after lease expiry, renewal, retry admission, completion, and explicit
@@ -47,6 +47,25 @@ of them.
 For ecosystem-wide package selection, construction, ownership, and lifecycle
 guidance, see the versioned [Golib ecosystem index](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/README.md)
 and its [persistence and durability family guidance](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/design-language.md#package-families-and-selection).
+
+## Install and package selection
+
+Version `v1.0.0` supports Go 1.26.6. Install the stable module with:
+
+```sh
+go get github.com/faustbrian/go-workflow@v1.0.0
+```
+
+Import `github.com/faustbrian/go-workflow` for definitions, history, replay,
+durable work, and worker contracts. Import
+`github.com/faustbrian/go-workflow/postgres` only when PostgreSQL should own the
+durable store implementation and schema migrations.
+
+Choose [State Machine](https://github.com/faustbrian/go-state-machine) for
+deterministic in-process transitions without durable orchestration. Choose
+[Temporal](https://github.com/faustbrian/go-temporal) for bounded time and
+period values, not workflow execution. Use Workflow when durable history,
+activities, retry, compensation, timers, and recovery are required.
 
 `Transition` is the persistence boundary: its contiguous history events and
 bounded due-work records must commit atomically. `TransitionStore` exposes that
@@ -191,32 +210,45 @@ The package does not claim exactly-once external side effects. Applications
 must make activities idempotent and treat unknown outcomes as requiring
 reconciliation before retry.
 
-## Definition example
+## Quick start
 
 ```go
-definition, err := workflow.NewDefinition(workflow.DefinitionSpec{
-	Name:    "order.fulfillment",
-	Version: "1",
-	Mode:    workflow.Orchestration,
-	Steps: []workflow.StepSpec{{
-		Name:        "reserve",
-		Kind:        workflow.StepActivity,
-		Target:      "inventory.reserve",
-		Timeout:     time.Minute,
-		InputLimit:  16 << 10,
-		ResultLimit: 16 << 10,
-		Retry: workflow.RetryPolicy{
-			MaxAttempts:  3,
-			InitialDelay: time.Second,
-			MaxDelay:     time.Minute,
-		},
-	}},
-})
-if err != nil {
-	return err
-}
+package main
 
-registry, err := workflow.CompileDefinitions(definition)
+import (
+	"log"
+	"time"
+
+	workflow "github.com/faustbrian/go-workflow"
+)
+
+func main() {
+	definition, err := workflow.NewDefinition(workflow.DefinitionSpec{
+		Name:    "order.fulfillment",
+		Version: "1",
+		Mode:    workflow.Orchestration,
+		Steps: []workflow.StepSpec{{
+			Name:        "reserve",
+			Kind:        workflow.StepActivity,
+			Target:      "inventory.reserve",
+			Timeout:     time.Minute,
+			InputLimit:  16 << 10,
+			ResultLimit: 16 << 10,
+			Retry: workflow.RetryPolicy{
+				MaxAttempts:  3,
+				InitialDelay: time.Second,
+				MaxDelay:     time.Minute,
+			},
+		}},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if _, err := workflow.CompileDefinitions(definition); err != nil {
+		log.Fatal(err)
+	}
+}
 ```
 
 Definitions are copied at construction and registry compilation rejects a
@@ -232,7 +264,10 @@ applications must select and durably persist an explicit migration edge.
 - [Verification](docs/verification.md) maps failure boundaries to executable
   evidence and distinguishes local gates from environment-owned drills.
 - [Security policy](SECURITY.md) records the trust model and reporting path.
-- `Example_durableOrchestration` is a compiling end-to-end planning example.
+- [`Example_durableOrchestration`](example_test.go) is a compiler-checked
+  end-to-end planning example.
+- [Support](SUPPORT.md) and [security](SECURITY.md) describe maintained-version
+  help and vulnerability-reporting requirements.
 
 ## FAQ
 

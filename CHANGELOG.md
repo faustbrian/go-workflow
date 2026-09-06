@@ -20,6 +20,8 @@ and releases use Semantic Versioning.
 
 ### Documentation
 
+- Document stable-v1 installation, standalone quick start, package selection,
+  and the Workflow, State Machine, and Temporal boundaries.
 - Link workflow guidance to the versioned Golib ecosystem design language and
   package-selection index.
 
