@@ -19,6 +19,13 @@ api:
       path: api/baseline.txt
 operations:
   - module: .
+    gate: docs
+    steps:
+      - type: make
+        makefile: verification/package.mk
+        target: docs
+        timeout: 5m
+  - module: .
     gate: fuzz
     steps:
       - type: go-test

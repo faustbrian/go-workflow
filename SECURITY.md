@@ -1,12 +1,13 @@
 # Security policy
 
-Report suspected vulnerabilities privately through the repository security
-contact rather than a public issue. Include the affected workflow or PostgreSQL
+Report suspected vulnerabilities through
+[GitHub private vulnerability reporting](https://github.com/faustbrian/go-workflow/security/advisories/new),
+not a public issue or discussion. Include the affected workflow or PostgreSQL
 API, impact, reproduction, and whether durable history or credentials may have
 been exposed. Do not include live secrets or customer payloads.
 
-Supported versions follow released module tags. Pre-release revisions receive
-fixes on a best-effort basis.
+The latest patch in the stable v1 line is supported. Unreleased revisions are
+not a separate supported release line.
 
 The package assumes trusted workflow definitions, activities, compensation
 handlers, and operator authorization. It does not sandbox code, provide tenant
