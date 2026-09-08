@@ -48,10 +48,7 @@
         "github.com/faustbrian/go-cloudevents/adapters/golib"
       ],
       "external_runtime_dependencies": [
-        "github.com/jackc/pgx/v5",
-        "github.com/moby/moby/api",
-        "github.com/testcontainers/testcontainers-go",
-        "github.com/testcontainers/testcontainers-go/modules/postgres"
+        "github.com/jackc/pgx/v5"
       ],
       "required_services": [],
       "build_tags": [],
@@ -66,79 +63,9 @@
       "specifications": [],
       "conformance_corpora": [],
       "provenance": [],
-      "goal_files": [
-        ".ai/GOAL.md",
-        ".ai/GOAL_HARDEN.md"
-      ],
-      "goal_status": "implementation-evidence-inventoried",
-      "goal_evidence": [
-        {
-          "file": ".ai/GOAL.md",
-          "requirements_sha256": "0ebe3b70536f945aac4023334357d2874290c53096b468462e3702855d75e9d5",
-          "implementation_evidence": [
-            "CHANGELOG.md",
-            "README.md",
-            "docs/architecture.md"
-          ],
-          "verification_gates": [
-            "format-check",
-            "tidy-check",
-            "safety",
-            "vet",
-            "test",
-            "race",
-            "coverage",
-            "lint",
-            "staticcheck",
-            "vulnerability",
-            "secrets",
-            "licenses",
-            "sbom",
-            "fuzz",
-            "mutation",
-            "nilaway",
-            "docs",
-            "api",
-            "conformance",
-            "interoperability",
-            "benchmark"
-          ],
-          "implementation_status": "implemented-requires-fresh-verification"
-        },
-        {
-          "file": ".ai/GOAL_HARDEN.md",
-          "requirements_sha256": "a1a345415899e59c7f8223db4fb44cc35491a735d2ae72339ee963e85c13db9d",
-          "implementation_evidence": [
-            "CHANGELOG.md",
-            "README.md",
-            "docs/architecture.md"
-          ],
-          "verification_gates": [
-            "format-check",
-            "tidy-check",
-            "safety",
-            "vet",
-            "test",
-            "race",
-            "coverage",
-            "lint",
-            "staticcheck",
-            "vulnerability",
-            "secrets",
-            "licenses",
-            "sbom",
-            "fuzz",
-            "mutation",
-            "nilaway",
-            "docs",
-            "api",
-            "conformance",
-            "interoperability",
-            "benchmark"
-          ],
-          "implementation_status": "implemented-requires-fresh-verification"
-        }
-      ],
+      "goal_files": [],
+      "goal_status": "not-applicable",
+      "goal_evidence": [],
       "gates": {
         "api_compatibility": true,
         "benchmarks": true,
@@ -225,13 +152,13 @@
         "supported_protocols": [],
         "documentation": {
           "readme": "README.md",
-          "api": "docs/architecture.md",
+          "api": "docs/reference.md",
           "adoption": "README.md",
           "security": "SECURITY.md",
-          "compatibility": "CHANGELOG.md",
+          "compatibility": "COMPATIBILITY.md",
           "performance": "docs/verification.md",
-          "examples": "README.md",
-          "faq": "README.md",
+          "examples": "example_test.go",
+          "faq": "docs/troubleshooting.md",
           "changelog": "CHANGELOG.md",
           "pkg_go_dev": "https://pkg.go.dev/github.com/faustbrian/go-workflow",
           "ecosystem_index": "https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/README.md"

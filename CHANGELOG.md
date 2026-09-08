@@ -24,6 +24,12 @@ and releases use Semantic Versioning.
   and the Workflow, State Machine, and Temporal boundaries.
 - Link workflow guidance to the versioned Golib ecosystem design language and
   package-selection index.
+- Add the package documentation index, API and lifecycle reference,
+  troubleshooting guidance, and direct support and private security routes.
+- Correct root-tag, active-maintenance, platform, dependency, and archived-goal
+  metadata without changing runtime behavior.
+- Check the complete documentation entry set and compiler-checked public
+  example in the module documentation gate.
 
 ## [1.0.0] - 2026-08-25
 
