@@ -90,6 +90,25 @@ The equivalent
 [`Example_durableOrchestration`](example_test.go) compiles and runs in the
 documentation gate.
 
+### Durable compensation and recovery recipe
+
+[`Example_durableCompensationRecovery`](durable_compensation_example_test.go)
+is the fast executable, non-releasable public-API composition. Its durable
+counterpart,
+[`TestPostgreSQLDurableCompensationRecipeSurvivesRestartAndDrainsWorker`](postgres/durable_compensation_recipe_integration_test.go),
+executes the same lifecycle through the PostgreSQL store and real workers. It
+proves that a known activity failure survives application store reconstruction,
+then covers audited compensation admission, an unknown compensation outcome,
+and explicit operator resolution that remains distinct from successful
+rollback.
+
+The application owns the definition and activity registries, handler
+idempotency and reconciliation, actor authorization, process context, and
+worker shutdown order. The persistence adapter owns each atomic history and due
+work commit. Processors persist attempt starts before invoking handlers and
+persist outcomes before work acknowledgement. On shutdown, cancel admission,
+wait for `Worker.Run` to return, and close the application-owned store last.
+
 ## Contract summary
 
 - Constructors validate before starting work. Definitions, registry entries,
@@ -113,6 +132,8 @@ documentation gate.
 ## Documentation
 
 - [Documentation index](docs/README.md)
+- [Durable compensation and recovery recipe](durable_compensation_example_test.go)
+- [PostgreSQL durability and shutdown proof](postgres/durable_compensation_recipe_integration_test.go)
 - [Architecture and package boundaries](docs/architecture.md)
 - [API and lifecycle reference](docs/reference.md)
 - [Operations, recovery, capacity, and security](docs/operations.md)

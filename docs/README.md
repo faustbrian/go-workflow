@@ -8,6 +8,11 @@
   ownership, cancellation, concurrency, shutdown, and errors.
 - [Architecture](architecture.md): durable history, orchestration,
   choreography, compensation, versioning, and composition boundaries.
+- [Durable compensation and recovery recipe](../durable_compensation_example_test.go):
+  fast executable public-API activity failure, compensation, unknown-outcome,
+  operator resolution, persistence, and lifecycle composition.
+- [PostgreSQL durability and shutdown proof](../postgres/durable_compensation_recipe_integration_test.go):
+  durable restart recovery, real-worker drain, and store shutdown ordering.
 
 ## Operate and verify
 
