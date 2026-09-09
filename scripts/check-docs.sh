@@ -6,7 +6,8 @@ required=(
     README.md CHANGELOG.md COMPATIBILITY.md CONTRIBUTING.md DEPRECATION.md
     LICENSE SECURITY.md SUPPORT.md docs/README.md docs/architecture.md
     docs/operations.md docs/reference.md docs/troubleshooting.md
-    docs/verification.md example_test.go
+    docs/verification.md example_test.go durable_compensation_example_test.go
+    postgres/durable_compensation_recipe_integration_test.go
 )
 
 cd "${root}"
@@ -35,15 +36,19 @@ for package in \
     go doc "${package}" >/dev/null
 done
 
-go test -json . -run '^Example_durableOrchestration$' -count=1 \
+go test -json . \
+    -run '^Example_(durableOrchestration|durableCompensationRecovery)$' \
+    -count=1 \
     > "${quickstart}/example-test.json"
-jq -se '
-    any(.[]; .Action == "pass" and .Test == "Example_durableOrchestration")
-' "${quickstart}/example-test.json" >/dev/null
+for example in Example_durableOrchestration Example_durableCompensationRecovery; do
+    jq -se --arg example "${example}" '
+        any(.[]; .Action == "pass" and .Test == $example)
+    ' "${quickstart}/example-test.json" >/dev/null
+done
 
 grep -Fq 'go get github.com/faustbrian/go-workflow@v1.0.0' README.md
 grep -Fq 'docs/README.md' README.md
 grep -Fq 'docs/troubleshooting.md' README.md
 grep -Fq 'example_test.go' README.md
 
-printf 'workflow documentation and executable example are present\n'
+printf 'workflow documentation and executable examples are present\n'

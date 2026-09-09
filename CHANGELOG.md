@@ -20,6 +20,11 @@ and releases use Semantic Versioning.
 
 ### Documentation
 
+- Add an executable, non-releasable durable-compensation recipe covering a
+  known activity failure, compensation admission, unknown compensation outcome,
+  audited operator resolution, PostgreSQL-backed restart recovery, real-worker
+  drain, and explicit lifecycle and persistence ownership, enforced by the
+  documentation and integration gates.
 - Document stable-v1 installation, standalone quick start, package selection,
   and the Workflow, State Machine, and Temporal boundaries.
 - Link workflow guidance to the versioned Golib ecosystem design language and
