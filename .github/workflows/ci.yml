@@ -22,7 +22,7 @@ jobs:
   ci:
     uses: faustbrian/go-library-tools/.github/workflows/library-ci.yml@7eceb4e97f9c4411b9fe6a17881c89e46296b4c9 # v1.7.0
     with:
-      tooling_sha: 531e4db50fd81a7201257a7b488a0cf22d333aca
+      tooling_sha: 7eceb4e97f9c4411b9fe6a17881c89e46296b4c9
       release_dry_run: ${{ inputs.release_dry_run || false }}
 
   required:
