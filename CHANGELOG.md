@@ -5,6 +5,11 @@ and releases use Semantic Versioning.
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep the durable-compensation example's activity deadlines relative to its
+  execution time so the recipe continues through known success and recovery.
+
 ### Changed
 
 - Migrate the clean-consumer Kafka interoperability fixture from the deprecated

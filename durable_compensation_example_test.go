@@ -13,7 +13,7 @@ import (
 // a service uses the PostgreSQL adapter or another TransitionStore with the
 // same atomic history-and-work contract.
 func Example_durableCompensationRecovery() {
-	now := time.Date(2026, 9, 9, 12, 0, 0, 0, time.UTC)
+	now := time.Now().UTC()
 	definition := mustRecipe(workflow.NewDefinition(workflow.DefinitionSpec{
 		Name: "orders", Version: "compensation-v1", Mode: workflow.Orchestration,
 		Steps: []workflow.StepSpec{
@@ -95,6 +95,10 @@ func Example_durableCompensationRecovery() {
 	}))
 	mustRecipeComplete(reserveProcessor.Process(ctx, reserveLease))
 	store.complete("work-reserve")
+	reserveProgress, _ := store.instance().Activity("reserve")
+	if reserveProgress.Status() != workflow.ActivityProgressSucceeded {
+		panic("reserve activity did not reach known success")
+	}
 
 	chargeDecision := mustRecipe(workflow.NewOrchestrationDecision(workflow.OrchestrationDecisionSpec{
 		TransitionID: "schedule-charge", WorkID: "work-charge", Instance: store.instance(),
