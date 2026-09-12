@@ -25,7 +25,7 @@ export GOTMPDIR="${task_gotmpdir}"
 export GOWORK=off
 
 go mod init workflow-interoperability.invalid/test
-go mod edit -go=1.26.6
+go mod edit -go=1.27.0
 go mod edit -require=github.com/faustbrian/go-workflow@v1.0.0
 go mod edit -require=github.com/faustbrian/go-transactional-outbox@v1.0.0
 go mod edit -require=github.com/faustbrian/go-kafka@v1.0.0

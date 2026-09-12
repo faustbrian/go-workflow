@@ -20,7 +20,7 @@ Specification-backed modules MUST NOT diverge from their declared standards.
 Ambiguities require documented decisions and stable tests. Deprecated APIs
 follow [`DEPRECATION.md`](DEPRECATION.md).
 
-Go 1.26.6 is the supported and release-tested toolchain. Release CI runs on
+Go 1.27.0 is the supported and release-tested toolchain. Release CI runs on
 Ubuntu 24.04 amd64. The packages contain no OS-specific build constraints, but
 that does not claim release qualification for every Go-supported platform or
 every PostgreSQL deployment.
