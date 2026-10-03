@@ -9,9 +9,16 @@ been exposed. Do not include live secrets or customer payloads.
 The latest patch in the stable v1 line is supported. Unreleased revisions are
 not a separate supported release line.
 
-The [v1 threat model and residual ownership](docs/threat-model-v1.md) identify
+The historical [v1 threat model and residual ownership](docs/threat-model-v1.md) and
+current [v2 source model](docs/threat-model-v2.md) identify
 the source baselines, trust assumptions, controls, and application obligations.
 They are not a claim of completed security verification or production readiness.
+
+Published v1.0.0 copies constructor inputs before rejecting invalid specs. Main
+validates before defensive copies, but this correction is not a released v1
+guarantee; v2 publication and release qualification remain pending. Private
+reports against either source boundary remain welcome without implying a
+published advisory or assigned severity.
 
 The package assumes trusted workflow definitions, activities, compensation
 handlers, and operator authorization. It does not sandbox code, provide tenant

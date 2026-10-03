@@ -20,6 +20,9 @@
   capacity, observability, and security.
 - [V1 threat model and residual ownership](threat-model-v1.md): source scope,
   trust boundaries, safeguards, and application-owned risk controls.
+- [V2 source model](threat-model-v2.md): corrected admission and pending release
+  scope, with residual ownership retained.
+- [V2 migration](migration-v2.md): module identity, Go minimum and consumer rollout.
 - [Troubleshooting and FAQ](troubleshooting.md): common integration and
   recovery failures.
 - [Verification](verification.md): executable failure-boundary, performance,

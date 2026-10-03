@@ -3,7 +3,7 @@ package workflow_test
 import (
 	"testing"
 
-	workflow "github.com/faustbrian/go-workflow"
+	workflow "github.com/faustbrian/go-workflow/v2"
 )
 
 func FuzzActivityDispatchBoundaries(fuzz *testing.F) {

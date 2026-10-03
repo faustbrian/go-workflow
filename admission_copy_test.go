@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	workflow "github.com/faustbrian/go-workflow"
+	workflow "github.com/faustbrian/go-workflow/v2"
 )
 
 // These tiny rejected specs must not allocate defensive copies. This is an

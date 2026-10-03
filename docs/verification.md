@@ -38,7 +38,7 @@ snapshot restore, streaming-replica promotion, and caller-owned transaction
 composition. The activity process-kill drill commits a marker side effect in a
 child process, exits before outcome persistence, then proves a higher-fenced
 redelivery records an unknown result without invoking the handler again. The
-interoperability target builds a clean temporary consumer and proves workflow
+interoperability target builds a temporary candidate consumer and proves workflow
 transitions and optional outbox envelopes share one PostgreSQL commit while
 inbound signal redelivery remains exactly deduplicated. It also partitions and
 recovers a live Kafka broker, preserves retryable or ambiguous publication
@@ -50,6 +50,16 @@ successful handlers acknowledge only after return while poison and exhausted
 deliveries reach durable dead-letter handling before source acknowledgement.
 Those transport-owned checks complement, rather than weaken or duplicate, the
 core workflow persistence boundary.
+
+Before publication, `make -f verification/package.mk interoperability` runs
+`scripts/check-interoperability.sh candidate`: its disposable non-releasable
+module replaces only Workflow with the exact owning source. The script defaults
+to `public`; explicit `public` has the same strict no-replacement behavior and
+uses the published v2.0.0 after release. That actual public consumer is a separate
+required publication check, not satisfied by candidate composition. Both full
+modes retain the PostgreSQL and Kafka runtime tests. The optional
+`candidate --compile-only` verifies fixture compilation without starting those
+services; it is not runtime composition or public-consumer evidence.
 
 ## Release gates
 

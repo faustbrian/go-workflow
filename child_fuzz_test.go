@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	workflow "github.com/faustbrian/go-workflow"
+	workflow "github.com/faustbrian/go-workflow/v2"
 )
 
 func FuzzChildDispatchBoundaries(fuzz *testing.F) {

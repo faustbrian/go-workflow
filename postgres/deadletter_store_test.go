@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	workflow "github.com/faustbrian/go-workflow"
+	workflow "github.com/faustbrian/go-workflow/v2"
 	"github.com/jackc/pgx/v5"
 )
 
