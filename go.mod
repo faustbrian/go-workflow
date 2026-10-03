@@ -1,4 +1,4 @@
-module github.com/faustbrian/go-workflow
+module github.com/faustbrian/go-workflow/v2
 
 go 1.27.0
 

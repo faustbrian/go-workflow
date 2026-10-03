@@ -17,6 +17,11 @@ and releases use Semantic Versioning.
 
 ### Changed
 
+- Target the next major `v2.0.0` at `github.com/faustbrian/go-workflow/v2`
+  with minimum Go 1.27.0. Root and PostgreSQL imports must migrate together;
+  exported declarations and persistence schemas remain unchanged. Publication
+  is pending, and existing v1 CloudEvents consumers retain their current graph.
+
 - Migrate the clean-consumer Kafka interoperability fixture from the deprecated
   transactional-outbox `adapters/gokafka` module to the target-oriented
   `adapters/kafka` v1.0.0 successor while preserving the established selector

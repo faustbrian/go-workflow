@@ -5,14 +5,14 @@
   "modules": [
     {
       "directory": ".",
-      "module_path": "github.com/faustbrian/go-workflow",
+      "module_path": "github.com/faustbrian/go-workflow/v2",
       "go_version": "1.27.0",
       "packages": [
         {
           "module_directory": ".",
           "directory": ".",
           "name": "workflow",
-          "import_path": "github.com/faustbrian/go-workflow",
+          "import_path": "github.com/faustbrian/go-workflow/v2",
           "kind": "public",
           "production": true,
           "executable": true,
@@ -24,7 +24,7 @@
           "module_directory": ".",
           "directory": "postgres",
           "name": "postgres",
-          "import_path": "github.com/faustbrian/go-workflow/postgres",
+          "import_path": "github.com/faustbrian/go-workflow/v2/postgres",
           "kind": "public",
           "production": true,
           "executable": true,
@@ -41,10 +41,11 @@
       "family_label": "Persistence And Durability",
       "family_description": "Durable state, delivery, coordination, recovery, and operational lifecycle.",
       "family_order": 4,
-      "version": "1.0.0",
+      "version": "2.0.0",
       "tag_prefix": "v",
       "owned_dependencies": [],
       "reverse_owned_dependencies": [
+        "github.com/faustbrian/go-cloudevents/adapters/workflow",
         "github.com/faustbrian/go-cloudevents/adapters/golib"
       ],
       "external_runtime_dependencies": [
@@ -97,11 +98,11 @@
         ],
         "public_package_identifier": "workflow",
         "primary_entry_packages": [
-          "github.com/faustbrian/go-workflow"
+          "github.com/faustbrian/go-workflow/v2"
         ],
         "package_selection": {
-          "github.com/faustbrian/go-workflow": "Use for immutable workflow definitions, durable history and transition contracts, deterministic orchestration, bounded workers, lifecycle commands, and reconciliation semantics.",
-          "github.com/faustbrian/go-workflow/postgres": "Use for pgx-backed atomic workflow transitions, history, due work, fencing, reconciliation, and audited dead-letter administration."
+          "github.com/faustbrian/go-workflow/v2": "Use for immutable workflow definitions, durable history and transition contracts, deterministic orchestration, bounded workers, lifecycle commands, and reconciliation semantics.",
+          "github.com/faustbrian/go-workflow/v2/postgres": "Use for pgx-backed atomic workflow transitions, history, due work, fencing, reconciliation, and audited dead-letter administration."
         },
         "lifecycle_status": "active",
         "maturity": "stable",
@@ -131,7 +132,7 @@
           "github.com/faustbrian/go-transactional-outbox/adapters/kafka"
         ],
         "adapters": [
-          "github.com/faustbrian/go-workflow/postgres"
+          "github.com/faustbrian/go-workflow/v2/postgres"
         ],
         "companions": [
           "github.com/faustbrian/go-state-machine",
@@ -160,7 +161,7 @@
           "examples": "example_test.go",
           "faq": "docs/troubleshooting.md",
           "changelog": "CHANGELOG.md",
-          "pkg_go_dev": "https://pkg.go.dev/github.com/faustbrian/go-workflow",
+          "pkg_go_dev": "https://pkg.go.dev/github.com/faustbrian/go-workflow/v2",
           "ecosystem_index": "https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/README.md"
         },
         "known_good_compatibility_sets": [],

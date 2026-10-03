@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	workflow "github.com/faustbrian/go-workflow"
+	workflow "github.com/faustbrian/go-workflow/v2"
 )
 
 func Example_durableOrchestration() {

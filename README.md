@@ -5,7 +5,7 @@
 [![Coverage](https://img.shields.io/badge/coverage-100%25_required-blue)](CONTRIBUTING.md#verification)
 [![Mutation](https://img.shields.io/badge/mutation-100%25_required-blue)](CONTRIBUTING.md#verification)
 [![Documentation](https://img.shields.io/badge/docs-checked_in_CI-blue)](docs/)
-[![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-workflow.svg)](https://pkg.go.dev/github.com/faustbrian/go-workflow)
+[![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-workflow/v2.svg)](https://pkg.go.dev/github.com/faustbrian/go-workflow/v2)
 [![Release](https://img.shields.io/github/v/release/faustbrian/go-workflow?sort=semver)](https://github.com/faustbrian/go-workflow/releases)
 [![Go](https://img.shields.io/badge/go-1.27.0-00ADD8?logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -17,8 +17,9 @@ application still owns business handlers, authorization, transport,
 publication and acknowledgement, process supervision, and external-effect
 idempotency.
 
-The released `v1.0.0` line is stable and actively maintained. It requires Go
-1.27.0.
+Main targets **v2.0.0, not yet published**, with minimum Go 1.27.0. Published
+v1.0.0 declares Go 1.26.6 and remains a distinct source and type identity.
+See [v2 migration guidance](docs/migration-v2.md) before adopting main.
 
 For ecosystem-wide design and selection guidance, see the versioned
 [Golib ecosystem index](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/README.md)
@@ -28,13 +29,16 @@ and its
 ## Install and packages
 
 ```sh
-go get github.com/faustbrian/go-workflow@v1.0.0
+go get github.com/faustbrian/go-workflow/v2@v2.0.0
 ```
 
-- `github.com/faustbrian/go-workflow` contains definitions, history, replay,
+This is the intended installation command **after publication**, not a claim
+that v2.0.0 can currently be downloaded.
+
+- `github.com/faustbrian/go-workflow/v2` contains definitions, history, replay,
   transitions, durable work, processors, workers, inspection, and operator
   commands.
-- `github.com/faustbrian/go-workflow/postgres` provides the pgx-backed store and
+- `github.com/faustbrian/go-workflow/v2/postgres` provides the pgx-backed store and
   ordered schema migrations inside the same module and release tag.
 
 Use Workflow when a process needs durable history, external activities,
@@ -54,7 +58,7 @@ import (
 	"log"
 	"time"
 
-	workflow "github.com/faustbrian/go-workflow"
+	workflow "github.com/faustbrian/go-workflow/v2"
 )
 
 func main() {
@@ -142,7 +146,7 @@ wait for `Worker.Run` to return, and close the application-owned store last.
 - [Compatibility](COMPATIBILITY.md), [deprecation](DEPRECATION.md), and
   [release history](CHANGELOG.md)
 - [Support](SUPPORT.md) and [private security reporting](SECURITY.md)
-- [Go API reference](https://pkg.go.dev/github.com/faustbrian/go-workflow)
+- [Go API reference](https://pkg.go.dev/github.com/faustbrian/go-workflow/v2)
 
 ## License
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	workflow "github.com/faustbrian/go-workflow"
+	workflow "github.com/faustbrian/go-workflow/v2"
 )
 
 // Example_durableCompensationRecovery is a non-releasable reference recipe.

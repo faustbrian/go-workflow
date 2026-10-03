@@ -15,3 +15,6 @@ For suspected vulnerabilities, use the enabled private reporting process in
 Support covers released module versions according to
 [`COMPATIBILITY.md`](COMPATIBILITY.md). The stable v1 line is actively
 maintained; unreleased changes on `main` are not a released compatibility set.
+The planned v2 line and its constructor-admission correction are not yet public;
+v1.0.0 must not be described as containing that correction. See
+[migration guidance](docs/migration-v2.md) for the exact distinction.
