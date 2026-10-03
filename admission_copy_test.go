@@ -26,6 +26,24 @@ func TestConstructorsRejectBeforeDefensiveCopies(t *testing.T) {
 		Attempt: 1, MaxAttempts: 1, IdempotencyKey: "child-key",
 		StartedAt: now, Deadline: now.Add(time.Minute), Input: input, InputLimit: 1,
 	}
+	// Byte-bound semantics remain explicit, but regexp validation may replenish
+	// its sync.Pool under race instrumentation. Do not count that as copying.
+	t.Run("activity input bound", func(t *testing.T) {
+		value, err := workflow.NewActivityRequest(activity)
+		if !errors.Is(err, workflow.ErrInvalidActivityRequest) || value.InstanceID() != "" || value.Input() != nil {
+			t.Fatal("activity input-bound rejection changed")
+		}
+	})
+	t.Run("child input bound", func(t *testing.T) {
+		value, err := workflow.NewChildStartRequest(child)
+		if !errors.Is(err, workflow.ErrInvalidChildStart) || value.ChildID() != "" || value.Input() != nil {
+			t.Fatal("child input-bound rejection changed")
+		}
+	})
+	// Empty identities fail before regexp machine acquisition. These independent
+	// scalar rejections therefore isolate premature defensive copies.
+	activity.InstanceID = ""
+	child.ParentInstanceID = ""
 	work, err := workflow.NewPendingWork(workflow.PendingWorkSpec{
 		ID: "work-1", Kind: workflow.WorkActivity, InstanceID: "instance-1",
 		Sequence: 1, AvailableAt: now, Deadline: now.Add(time.Minute), Payload: input,
@@ -41,13 +59,13 @@ func TestConstructorsRejectBeforeDefensiveCopies(t *testing.T) {
 		name   string
 		reject func()
 	}{
-		{"activity input bound", func() {
+		{"activity identity", func() {
 			value, err := workflow.NewActivityRequest(activity)
 			if !errors.Is(err, workflow.ErrInvalidActivityRequest) || value.InstanceID() != "" || value.Input() != nil {
 				t.Fatal("activity rejection changed")
 			}
 		}},
-		{"child input bound", func() {
+		{"child identity", func() {
 			value, err := workflow.NewChildStartRequest(child)
 			if !errors.Is(err, workflow.ErrInvalidChildStart) || value.ChildID() != "" || value.Input() != nil {
 				t.Fatal("child rejection changed")
