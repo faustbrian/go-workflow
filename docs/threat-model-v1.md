@@ -14,6 +14,13 @@ and requires Go 1.27.0; the published baseline declares Go 1.26.6. The additiona
 examples and current-main verification are not evidence of a new public release.
 Later source or dependency changes require reassessing the affected boundaries.
 
+The unreleased constructor-admission correction validates borrowed temporary
+views in `NewActivityRequest`, `NewActivityOutcome`, `NewChildStartRequest`,
+`NewPendingWork` and `NewTransition` before making their defensive byte/slice
+copies. The published and original assessed baselines copied those inputs
+before validation. Existing limits, error classifications and accepted-value
+ownership remain unchanged; this correction is not yet a published guarantee.
+
 This model records source contracts, not a completed security audit, scanner
 clearance, verified deployment, or approval to accept an application's risk.
 Existing tests below are contract oracles; this documentation change does not

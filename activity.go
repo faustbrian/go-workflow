@@ -63,12 +63,13 @@ func NewActivityRequest(spec ActivityRequestSpec) (ActivityRequest, error) {
 		stepName: spec.StepName, attempt: spec.Attempt, maxAttempts: spec.MaxAttempts,
 		idempotencyKey: spec.IdempotencyKey,
 		startedAt:      canonicalTime(spec.StartedAt), deadline: canonicalTime(spec.Deadline),
-		input: cloneBytes(spec.Input), inputLimit: spec.InputLimit, resultLimit: spec.ResultLimit,
+		input: spec.Input, inputLimit: spec.InputLimit, resultLimit: spec.ResultLimit,
 		tenantID: spec.TenantID, correlationID: spec.CorrelationID,
 	}
 	if !request.valid() {
 		return ActivityRequest{}, ErrInvalidActivityRequest
 	}
+	request.input = cloneBytes(request.input)
 	return request, nil
 }
 
@@ -160,11 +161,12 @@ type ActivityOutcome struct {
 func NewActivityOutcome(spec ActivityOutcomeSpec) (ActivityOutcome, error) {
 	outcome := ActivityOutcome{
 		kind: spec.Kind, code: spec.Code, retryable: spec.Retryable,
-		data: cloneBytes(spec.Data),
+		data: spec.Data,
 	}
 	if !outcome.valid() {
 		return ActivityOutcome{}, ErrInvalidActivityOutcome
 	}
+	outcome.data = cloneBytes(outcome.data)
 	return outcome, nil
 }
 

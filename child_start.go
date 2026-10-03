@@ -116,12 +116,13 @@ func NewChildStartRequest(spec ChildStartRequestSpec) (ChildStartRequest, error)
 		stepName: spec.StepName, childID: spec.ChildID, childDefinition: spec.ChildDefinition,
 		attempt: spec.Attempt, maxAttempts: spec.MaxAttempts, idempotencyKey: spec.IdempotencyKey,
 		startedAt: canonicalTime(spec.StartedAt), deadline: canonicalTime(spec.Deadline),
-		input: cloneBytes(spec.Input), inputLimit: spec.InputLimit,
+		input: spec.Input, inputLimit: spec.InputLimit,
 		tenantID: spec.TenantID, correlationID: spec.CorrelationID,
 	}
 	if !request.valid() {
 		return ChildStartRequest{}, ErrInvalidChildStart
 	}
+	request.input = cloneBytes(request.input)
 	return request, nil
 }
 

@@ -7,6 +7,11 @@ and releases use Semantic Versioning.
 
 ### Fixed
 
+- Validate activity requests and outcomes, child-start requests, pending work
+  and transition plans before allocating defensive input copies. Accepted
+  values retain independent owned storage and unchanged fingerprints, bounds
+  and error classifications.
+
 - Keep the durable-compensation example's activity deadlines relative to its
   execution time so the recipe continues through known success and recovery.
 
