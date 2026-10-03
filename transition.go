@@ -74,11 +74,12 @@ func NewPendingWork(spec PendingWorkSpec) (PendingWork, error) {
 	work := PendingWork{
 		id: spec.ID, kind: spec.Kind, instanceID: spec.InstanceID, sequence: spec.Sequence,
 		availableAt: canonicalTime(spec.AvailableAt), deadline: canonicalTime(spec.Deadline),
-		payload: cloneBytes(spec.Payload), tenantID: spec.TenantID, correlationID: spec.CorrelationID,
+		payload: spec.Payload, tenantID: spec.TenantID, correlationID: spec.CorrelationID,
 	}
 	if !work.valid() {
 		return PendingWork{}, ErrInvalidPendingWork
 	}
+	work.payload = cloneBytes(work.payload)
 	return work, nil
 }
 
@@ -145,12 +146,14 @@ func NewTransition(spec TransitionSpec) (Transition, error) {
 	transition := Transition{
 		id: spec.ID, instanceID: spec.InstanceID, expectedSequence: spec.ExpectedSequence,
 		definition: spec.Definition,
-		events:     append([]HistoryEvent(nil), spec.Events...),
-		work:       clonePendingWork(spec.Work),
+		events:     spec.Events,
+		work:       spec.Work,
 	}
 	if !transition.valid() {
 		return Transition{}, ErrInvalidTransitionPlan
 	}
+	transition.events = append([]HistoryEvent(nil), transition.events...)
+	transition.work = clonePendingWork(transition.work)
 	transition.fingerprint = transitionFingerprint(transition)
 	return transition, nil
 }
