@@ -1,9 +1,9 @@
 # V2 source model and residual ownership
 
-Model revision 1, dated 2026-10-03, covers the root Workflow and PostgreSQL
+Model revision 2, dated 2026-10-03, covers the root Workflow and PostgreSQL
 packages on main derived from `e9c20463ee4b44a1b37c85310c6890334af3313d`.
-The nominal v2 migration targets Go 1.27.0 and version 2.0.0; it is not yet a
-published or release-qualified guarantee. The [historical v1 model](threat-model-v1.md)
+The nominal v2 migration targets Go 1.27.0 and version 2.0.0. This source model
+is not a publication or release-qualification verdict. The [historical v1 model](threat-model-v1.md)
 remains unchanged and identifies published v1.0.0 separately.
 
 ## Corrected library-owned admission
@@ -21,7 +21,8 @@ source-level contract oracles, not universal heap or throughput guarantees.
 
 Published v1.0.0 copied before validation and does not contain this correction.
 The nominal migration adds no runtime algorithms or persistence schema change.
-Release CI, qualified scanner adoption and clean public consumers remain pending;
+Release CI, qualified scanner adoption and clean public consumers require
+separate attributable evidence;
 this model is not blanket security approval, an advisory or a severity assessment.
 
 ## Retained trust boundaries and residual owners

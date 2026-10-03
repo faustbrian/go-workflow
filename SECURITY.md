@@ -6,18 +6,21 @@ not a public issue or discussion. Include the affected workflow or PostgreSQL
 API, impact, reproduction, and whether durable history or credentials may have
 been exposed. Do not include live secrets or customer payloads.
 
-The latest patch in the stable v1 line is supported. Unreleased revisions are
-not a separate supported release line.
+The latest patch in each published stable v1 or v2 line is supported.
+Unreleased revisions are not a separate supported release line. A security
+remediation may require upgrading to a newer major; support does not promise
+that a correction is backported to an older major.
 
 The historical [v1 threat model and residual ownership](docs/threat-model-v1.md) and
 current [v2 source model](docs/threat-model-v2.md) identify
 the source baselines, trust assumptions, controls, and application obligations.
 They are not a claim of completed security verification or production readiness.
 
-Published v1.0.0 copies constructor inputs before rejecting invalid specs. Main
-validates before defensive copies, but this correction is not a released v1
-guarantee; v2 publication and release qualification remain pending. Private
-reports against either source boundary remain welcome without implying a
+Published v1.0.0 copies constructor inputs before rejecting invalid specs. The
+v2 source validates before defensive copies; this correction is not a released
+v1 guarantee. Adopt it from a published stable v2 tag, not from an assumption
+that `main` is released. Private reports against either source boundary remain
+welcome without implying a
 published advisory or assigned severity.
 
 The package assumes trusted workflow definitions, activities, compensation
