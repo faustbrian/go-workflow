@@ -5,6 +5,8 @@ and releases use Semantic Versioning.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-03
+
 ### Fixed
 
 - Validate activity requests and outcomes, child-start requests, pending work
@@ -17,16 +19,16 @@ and releases use Semantic Versioning.
 
 ### Changed
 
-- Target the next major `v2.0.0` at `github.com/faustbrian/go-workflow/v2`
+- Publish `v2.0.0` at `github.com/faustbrian/go-workflow/v2`
   with minimum Go 1.27.0. Root and PostgreSQL imports must migrate together;
-  exported declarations and persistence schemas remain unchanged. Publication
-  is pending, and existing v1 CloudEvents consumers retain their current graph.
+  exported declarations and persistence schemas remain unchanged. Existing
+  v1 CloudEvents consumers retain their current graph.
 
 - Migrate the clean-consumer Kafka interoperability fixture from the deprecated
   transactional-outbox `adapters/gokafka` module to the target-oriented
   `adapters/kafka` v1.0.0 successor while preserving the established selector
   and publisher behavior through an explicit import alias.
-- Use the pinned `go-library-tools` v1.4.0 release for repository verification
+- Use the pinned `go-library-tools` v1.7.1 release for repository verification
   while retaining repository-owned evidence, API baselines, and
   interoperability fixtures.
 - Publish schema-v2 cohesion metadata and keep repository, cohesion, online
@@ -186,5 +188,6 @@ and releases use Semantic Versioning.
 - `StepChild` definitions now require `ChildDefinition`; existing child steps
   must pin the exact registered child name, version, and fingerprint.
 
-[Unreleased]: https://github.com/faustbrian/go-workflow/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/faustbrian/go-workflow/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/faustbrian/go-workflow/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/faustbrian/go-workflow/releases/tag/v1.0.0
