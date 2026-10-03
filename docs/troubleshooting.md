@@ -47,8 +47,9 @@ pool, starts one `Worker.Run` lifecycle, cancels and joins it, and then closes
 external resources. The workflow module neither migrates automatically nor
 supervises the process.
 
-For reproducible defects use [GitHub Issues](https://github.com/faustbrian/go-workflow/issues).
-For adoption questions use
-[GitHub Discussions](https://github.com/faustbrian/go-workflow/discussions).
+GitHub Issues and Discussions are not enabled for this repository. Use the
+[README](../README.md) and [API and lifecycle reference](reference.md) for
+self-service adoption guidance; [SUPPORT.md](../SUPPORT.md) describes the
+available support boundary.
 Report vulnerabilities through the private process in
 [SECURITY.md](../SECURITY.md).

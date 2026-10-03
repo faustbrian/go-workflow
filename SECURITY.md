@@ -9,6 +9,10 @@ been exposed. Do not include live secrets or customer payloads.
 The latest patch in the stable v1 line is supported. Unreleased revisions are
 not a separate supported release line.
 
+The [v1 threat model and residual ownership](docs/threat-model-v1.md) identify
+the source baselines, trust assumptions, controls, and application obligations.
+They are not a claim of completed security verification or production readiness.
+
 The package assumes trusted workflow definitions, activities, compensation
 handlers, and operator authorization. It does not sandbox code, provide tenant
 authorization, encrypt payloads, manage database credentials, or make external

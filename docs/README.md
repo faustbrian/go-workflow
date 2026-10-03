@@ -18,6 +18,8 @@
 
 - [Operations](operations.md): deployment, PostgreSQL, reconciliation,
   capacity, observability, and security.
+- [V1 threat model and residual ownership](threat-model-v1.md): source scope,
+  trust boundaries, safeguards, and application-owned risk controls.
 - [Troubleshooting and FAQ](troubleshooting.md): common integration and
   recovery failures.
 - [Verification](verification.md): executable failure-boundary, performance,
