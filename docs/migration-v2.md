@@ -1,9 +1,10 @@
-# V2 migration and pending publication
+# V2 migration
 
 Main targets `github.com/faustbrian/go-workflow/v2` version 2.0.0 with minimum
 Go 1.27.0. It stays at the repository root; PostgreSQL remains in the same module
-at `github.com/faustbrian/go-workflow/v2/postgres`. Publication is pending. After
-release, install with `go get github.com/faustbrian/go-workflow/v2@v2.0.0` and
+at `github.com/faustbrian/go-workflow/v2/postgres`. Once v2.0.0 is listed as a
+published stable release, install with
+`go get github.com/faustbrian/go-workflow/v2@v2.0.0` and
 change both imports together. V1 and v2 types are distinct, even where their
 declarations match; do not mix definitions, stores or processor contracts.
 
@@ -12,7 +13,8 @@ classification or accepted-value ownership. Main already contains a separate
 constructor-admission correction: five constructors validate borrowed views
 before allocating defensive copies. Published v1.0.0 at
 `aef739f62aa389008eebcbedb74492d2e3067b9e` copied first and declares Go 1.26.6.
-This document does not claim that correction was backported or publicly released.
+This correction is not backported to v1.0.0. Source identity alone does not
+establish a published or supported release.
 
 Historical v1 API baseline bytes remain in `api/baseline.txt`; current v2 API
 checks use `api/v2-baseline.txt`. The public declarations are preserved except
