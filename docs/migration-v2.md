@@ -21,17 +21,21 @@ checks use `api/v2-baseline.txt`. The public declarations are preserved except
 for nominal import identity. Existing durable records and definition versions
 must still obey the established replay and rolling-deployment contracts.
 
-Both `github.com/faustbrian/go-cloudevents/adapters/workflow` and
-`github.com/faustbrian/go-cloudevents/adapters/golib` currently consume v1
-Workflow types. These existing graphs, and Tools' historical consumer, are not
-rewritten here. Their deliberate owned-major migrations and actual public v2
-composition must happen separately after publication. Coordination inventory
-is not proof of adopted imports or a compatible public consumer.
+The published `github.com/faustbrian/go-cloudevents/adapters/workflow/v2@v2.0.0`
+and `github.com/faustbrian/go-cloudevents/adapters/golib/v3@v3.0.0` consume
+Workflow v2 types. Tools' maintained public consumer selects Workflow v2 and
+the Workflow v2 CloudEvents adapter. Retained v1 adapters and frozen historical
+consumer cohorts still use their original nominal identities; they are not
+silently rewritten. Coordination inventory alone is not proof of adopted
+imports or a compatible public consumer.
 
 Shared CI retains the published Tools v1.7.1 workflow pin. Tools/v2 is not yet
-published; future scanner/diagnostic adoption requires a qualified public
-version and its own compatible configuration review, not an unpublished SHA
-or fabricated checksum. Existing gates remain unchanged.
+published. The explicit `security_diagnostic` dispatch instead builds immutable,
+reviewed development tooling for native security qualification and then runs
+the existing actual-public PostgreSQL/Kafka composition. This is not a Tools
+release, release rehearsal or substitute for ordinary CI. It leaves published
+tool/checksum pins and fail-closed Required jobs unchanged. Private reporting
+and source-model residual ownership remain described in [SECURITY.md](../SECURITY.md).
 
 `make -f verification/package.mk interoperability` selects explicit candidate
 composition before tagging:

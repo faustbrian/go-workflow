@@ -13,6 +13,11 @@ on:
         required: false
         default: false
         type: boolean
+      security_diagnostic:
+        description: Run native security and public composition, not release CI
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -20,10 +25,121 @@ permissions:
 
 jobs:
   ci:
+    if: github.event_name != 'workflow_dispatch' || !inputs.security_diagnostic
     uses: faustbrian/go-library-tools/.github/workflows/library-ci.yml@efdcf7eabe39003683f09b80423be355b2f7154f # v1.7.1
     with:
       tooling_sha: efdcf7eabe39003683f09b80423be355b2f7154f
       release_dry_run: ${{ inputs.release_dry_run || false }}
+
+  security-diagnostic:
+    name: Native security and public composition (development only)
+    if: github.event_name == 'workflow_dispatch' && inputs.security_diagnostic
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    permissions:
+      contents: read
+    env:
+      GOENV: off
+      GOWORK: off
+      GOTOOLCHAIN: local
+      GOMAXPROCS: '2'
+      GOFLAGS: -p=1
+      GOPROXY: https://proxy.golang.org
+      GOSUMDB: sum.golang.org
+      GOPRIVATE: ''
+      GONOPROXY: ''
+      GONOSUMDB: ''
+      TESTCONTAINERS_RYUK_DISABLED: 'false'
+    steps:
+      - name: Reject release substitution
+        env:
+          RELEASE_DRY_RUN: ${{ inputs.release_dry_run }}
+        run: test "${RELEASE_DRY_RUN}" = false
+      - name: Initialize task-owned resources
+        env:
+          TASK_ROOT: ${{ runner.temp }}/golib-security-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${TASK_ROOT}/build" "${TASK_ROOT}/modules" "${TASK_ROOT}/tmp" "${TASK_ROOT}/lint"
+          docker image ls --quiet --no-trunc | sort -u >"${TASK_ROOT}/initial-images.pending"
+          mv "${TASK_ROOT}/initial-images.pending" "${TASK_ROOT}/initial-images"
+          printf 'GOCACHE=%s\nGOMODCACHE=%s\nGOTMPDIR=%s\nGOLANGCI_LINT_CACHE=%s\nTMPDIR=%s\n' \
+            "${TASK_ROOT}/build" "${TASK_ROOT}/modules" "${TASK_ROOT}/tmp" \
+            "${TASK_ROOT}/lint" "${TASK_ROOT}/tmp" >>"${GITHUB_ENV}"
+      - name: Check out exact producer with complete history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: producer
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Check out reviewed diagnostic tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: faustbrian/go-library-tools
+          ref: 77bfd78c12a853f0d490bb27a3fbcb5f34330772
+          path: security-tooling
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.0'
+          cache: false
+      - name: Build development qualification tooling
+        timeout-minutes: 15
+        working-directory: security-tooling
+        run: go build -p 1 -trimpath -buildvcs=false -o "${GOTMPDIR}/golib" ./cmd/golib
+      - name: Run native security and bounded checks for all declared modules
+        timeout-minutes: 90
+        working-directory: producer
+        run: '"${GOTMPDIR}/golib" check --local --all'
+      - name: Run actual public PostgreSQL and Kafka composition
+        timeout-minutes: 35
+        working-directory: producer
+        run: bash ./scripts/check-interoperability.sh public
+      - name: Remove task-owned services and qualification resources
+        if: always()
+        timeout-minutes: 5
+        env:
+          TASK_ROOT: ${{ runner.temp }}/golib-security-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -uo pipefail
+          # This dedicated hosted runner owns the Testcontainers resources.
+          # Never prune the daemon or remove pre-existing runner images.
+          cleanup_status=0
+          mkdir -p "${TASK_ROOT}" || cleanup_status=1
+          if docker ps --all --quiet --filter label=org.testcontainers=true >"${TASK_ROOT}/containers"; then
+            xargs -r docker rm --force --volumes <"${TASK_ROOT}/containers" || cleanup_status=1
+          else
+            cleanup_status=1
+          fi
+          if docker network ls --quiet --filter label=org.testcontainers=true >"${TASK_ROOT}/networks"; then
+            xargs -r docker network rm <"${TASK_ROOT}/networks" || cleanup_status=1
+          else
+            cleanup_status=1
+          fi
+          if docker volume ls --quiet --filter label=org.testcontainers=true >"${TASK_ROOT}/volumes"; then
+            xargs -r docker volume rm <"${TASK_ROOT}/volumes" || cleanup_status=1
+          else
+            cleanup_status=1
+          fi
+          if [[ -f "${TASK_ROOT}/initial-images" ]]; then
+            if docker image ls --quiet --no-trunc | sort -u >"${TASK_ROOT}/final-images"; then
+              if comm -13 "${TASK_ROOT}/initial-images" "${TASK_ROOT}/final-images" >"${TASK_ROOT}/owned-images"; then
+                xargs -r docker image rm <"${TASK_ROOT}/owned-images" || cleanup_status=1
+              else
+                cleanup_status=1
+              fi
+            else
+              cleanup_status=1
+            fi
+          fi
+          for target in "${TASK_ROOT}" "${GITHUB_WORKSPACE}/producer" "${GITHUB_WORKSPACE}/security-tooling"; do
+            if [[ -d "${target}" ]]; then
+              find "${target}" -type d -exec chmod u+w {} + || cleanup_status=1
+              find "${target}" -depth -delete || cleanup_status=1
+            fi
+          done
+          exit "${cleanup_status}"
 
   required:
     name: Required
