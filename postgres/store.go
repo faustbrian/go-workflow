@@ -271,6 +271,7 @@ func (store *Store) ListInstances(
 		afterCreatedAt = query.After().CreatedAt()
 	}
 	rows, err := store.database.Query(
+		// #nosec G115 -- query.Valid bounds the instance limit to 100, so limit plus one is at most 101.
 		ctx, statement, afterCreatedAt, query.After().InstanceID(), int32(query.Limit()+1),
 	)
 	if err != nil {
@@ -412,6 +413,7 @@ func (store *Store) stageTransition(
 		if err != nil {
 			return false, notCommitted(err)
 		}
+		// #nosec G115 -- the owned schema constrains this BIGINT sequence to be nonnegative, so it fits uint64.
 		if uint64(sequence) != transition.ExpectedSequence() ||
 			name != transition.Definition().Name() || version != transition.Definition().Version() ||
 			fingerprint != transition.Definition().Fingerprint() {
@@ -497,6 +499,7 @@ func (store *Store) History(ctx context.Context, query workflow.HistoryQuery) (w
 		return workflow.HistoryPage{}, workflow.ErrStoreNotFound
 	}
 	rows, err := store.database.Query(ctx, store.queries.history,
+		// #nosec G115 -- query.Valid bounds the history limit to 1000, so limit plus one is at most 1001.
 		query.InstanceID(), query.AfterSequence(), int32(query.Limit()+1))
 	if err != nil {
 		return workflow.HistoryPage{}, newOperationError("query history", err)
@@ -537,6 +540,7 @@ func (store *Store) Claim(ctx context.Context, request workflow.WorkClaimRequest
 	}
 	expiresAt := request.Now().Add(request.LeaseDuration())
 	rows, err := store.database.Query(ctx, store.queries.claimWork,
+		// #nosec G115 -- request.Valid bounds the claim limit to 100, which fits int32.
 		request.Now(), int32(request.Limit()), request.Owner(), expiresAt)
 	if err != nil {
 		return nil, newOperationError("claim work", err)
@@ -629,6 +633,7 @@ func (store *Store) ListDeadLetters(
 		after = query.After().FailedAt()
 	}
 	rows, err := store.database.Query(
+		// #nosec G115 -- query.Valid bounds the dead-letter limit to 100, so limit plus one is at most 101.
 		ctx, store.queries.listDeadLetters, after, query.After().WorkID(), int32(query.Limit()+1),
 	)
 	if err != nil {
