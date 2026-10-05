@@ -159,6 +159,7 @@ func retryDelay(policy RetryPolicy, attempt uint32) time.Duration {
 	// Sixty-three doublings cover the complete positive time.Duration range,
 	// keeping replay work bounded even for a very large persisted attempt.
 	for range min(attempt-1, uint32(63)) {
+		// #nosec G115 -- validated positive retry durations keep delay <= MaxInt64; doubling fits uint64 and the MaxDelay cap keeps the result <= MaxInt64.
 		delay = time.Duration(min(uint64(delay)*2, uint64(policy.MaxDelay)))
 	}
 	return delay

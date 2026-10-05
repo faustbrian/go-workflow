@@ -25,6 +25,35 @@ Release CI, qualified scanner adoption and clean public consumers require
 separate attributable evidence;
 this model is not blanket security approval, an advisory or a severity assessment.
 
+## Narrow native integer-conversion suppressions
+
+Seven exact-site `#nosec G115` annotations cover eight native conversion
+findings without changing runtime arithmetic, admission, schemas or scanner
+thresholds. Maintainers own these range proofs, not a blanket scanner exemption:
+
+- History traversal validates page sizes at most 1000; its minimum cannot
+  exceed that uint32 page size. Validated returned pages also preserve the
+  remaining event allowance.
+- Immutable definitions validate positive `RetryPolicy` durations with
+  `MaxDelay >= InitialDelay`. Each retry iteration retains `delay <= MaxDelay`
+  and both durations are at most MaxInt64 nanoseconds. Unsigned doubling is at
+  most MaxUint64 minus one; the final MaxDelay cap keeps the signed result at
+  most MaxInt64. The existing 63-iteration bound remains unchanged.
+- PostgreSQL entry points revalidate request limits: instance and dead-letter
+  pages are at most 100 (lookahead at most 101), history pages at most 1000
+  (lookahead at most 1001), and work claims at most 100. All fit int32.
+- The owned PostgreSQL schema constrains the scanned instance sequence to a
+  nonnegative BIGINT, which fits uint64. This proof trusts the owned database
+  constraint; it does not classify corrupt negative rows or a modified schema
+  as valid. Database operators retain schema-integrity ownership.
+
+Review each annotation when admission limits, retry validation or saturation,
+the iteration cap, query validation paths, or database constraints change.
+Exact rule IDs and concrete justifications remain required; global exclusions
+and broad linter disables are not substitutes. Changed native scanner and CI
+results require separate evidence; these proofs are not vulnerability severity
+or release-qualification claims.
+
 ## Retained trust boundaries and residual owners
 
 The assets, entry points, replay/commit/fencing controls and detailed

@@ -120,6 +120,7 @@ func traverseHistory(
 			return err
 		}
 		remaining := uint64(maxEvents) - count
+		// #nosec G115 -- validated pageSize is at most 1000, so this minimum fits uint32.
 		limit := uint32(min(uint64(pageSize), remaining))
 		query, _ := NewHistoryQuery(HistoryQuerySpec{
 			InstanceID: instanceID, AfterSequence: after, Limit: limit,
