@@ -7,6 +7,9 @@ and releases use Semantic Versioning.
 
 ### Changed
 
+- Update PostgreSQL integration fixtures to Testcontainers 0.44.0 and its
+  compatible Docker dependency selections; the workflow API and PostgreSQL
+  persistence contract remain unchanged.
 - Adopt pgx 5.11.0 for PostgreSQL persistence, retaining caller-owned pools,
   transaction atomicity, lease fencing, and UTC-normalized workflow instants.
   Connection-string parsing and timestamp decoding follow the driver's
