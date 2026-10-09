@@ -1,9 +1,10 @@
-# V2 migration and pending publication
+# V2 migration
 
 Main targets `github.com/faustbrian/go-workflow/v2` version 2.0.0 with minimum
 Go 1.27.0. It stays at the repository root; PostgreSQL remains in the same module
-at `github.com/faustbrian/go-workflow/v2/postgres`. Publication is pending. After
-release, install with `go get github.com/faustbrian/go-workflow/v2@v2.0.0` and
+at `github.com/faustbrian/go-workflow/v2/postgres`. Once v2.0.0 is listed as a
+published stable release, install with
+`go get github.com/faustbrian/go-workflow/v2@v2.0.0` and
 change both imports together. V1 and v2 types are distinct, even where their
 declarations match; do not mix definitions, stores or processor contracts.
 
@@ -12,24 +13,29 @@ classification or accepted-value ownership. Main already contains a separate
 constructor-admission correction: five constructors validate borrowed views
 before allocating defensive copies. Published v1.0.0 at
 `aef739f62aa389008eebcbedb74492d2e3067b9e` copied first and declares Go 1.26.6.
-This document does not claim that correction was backported or publicly released.
+This correction is not backported to v1.0.0. Source identity alone does not
+establish a published or supported release.
 
 Historical v1 API baseline bytes remain in `api/baseline.txt`; current v2 API
 checks use `api/v2-baseline.txt`. The public declarations are preserved except
 for nominal import identity. Existing durable records and definition versions
 must still obey the established replay and rolling-deployment contracts.
 
-Both `github.com/faustbrian/go-cloudevents/adapters/workflow` and
-`github.com/faustbrian/go-cloudevents/adapters/golib` currently consume v1
-Workflow types. These existing graphs, and Tools' historical consumer, are not
-rewritten here. Their deliberate owned-major migrations and actual public v2
-composition must happen separately after publication. Coordination inventory
-is not proof of adopted imports or a compatible public consumer.
+The published `github.com/faustbrian/go-cloudevents/adapters/workflow/v2@v2.0.0`
+and `github.com/faustbrian/go-cloudevents/adapters/golib/v3@v3.0.0` consume
+Workflow v2 types. Tools' maintained public consumer selects Workflow v2 and
+the Workflow v2 CloudEvents adapter. Retained v1 adapters and frozen historical
+consumer cohorts still use their original nominal identities; they are not
+silently rewritten. Coordination inventory alone is not proof of adopted
+imports or a compatible public consumer.
 
 Shared CI retains the published Tools v1.7.1 workflow pin. Tools/v2 is not yet
-published; future scanner/diagnostic adoption requires a qualified public
-version and its own compatible configuration review, not an unpublished SHA
-or fabricated checksum. Existing gates remain unchanged.
+published. The explicit `security_diagnostic` dispatch instead builds immutable,
+reviewed development tooling for native security qualification and then runs
+the existing actual-public PostgreSQL/Kafka composition. This is not a Tools
+release, release rehearsal or substitute for ordinary CI. It leaves published
+tool/checksum pins and fail-closed Required jobs unchanged. Private reporting
+and source-model residual ownership remain described in [SECURITY.md](../SECURITY.md).
 
 `make -f verification/package.mk interoperability` selects explicit candidate
 composition before tagging:

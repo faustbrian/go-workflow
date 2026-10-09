@@ -2,11 +2,11 @@
 
 The repository has one releasable module at
 `github.com/faustbrian/go-workflow/v2`. It follows semantic versioning and uses
-root tags such as the planned `v2.0.0`. The `workflow` and `postgres` packages are released
+root tags such as `v2.0.0`. The `workflow` and `postgres` packages are released
 together under that tag; `postgres/` is not a nested module and does not use a
 directory-prefixed tag.
 
-V2 is pending publication. Its nominal module and package identities and minimum
+V2's nominal module and package identities and minimum
 Go 1.27.0 are intentional compatibility breaks from published v1.0.0 (Go
 1.26.6). Exported declarations, persistence schemas and accepted-value semantics
 are preserved by the nominal migration; the earlier admission correction is

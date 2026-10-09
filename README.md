@@ -17,9 +17,10 @@ application still owns business handlers, authorization, transport,
 publication and acknowledgement, process supervision, and external-effect
 idempotency.
 
-Main targets **v2.0.0, not yet published**, with minimum Go 1.27.0. Published
+This source targets **v2.0.0**, with minimum Go 1.27.0. Published
 v1.0.0 declares Go 1.26.6 and remains a distinct source and type identity.
-See [v2 migration guidance](docs/migration-v2.md) before adopting main.
+Use published stable tags from the [release list](https://github.com/faustbrian/go-workflow/releases),
+not `main`, as release identities. See [v2 migration guidance](docs/migration-v2.md).
 
 For ecosystem-wide design and selection guidance, see the versioned
 [Golib ecosystem index](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/README.md)
@@ -32,8 +33,8 @@ and its
 go get github.com/faustbrian/go-workflow/v2@v2.0.0
 ```
 
-This is the intended installation command **after publication**, not a claim
-that v2.0.0 can currently be downloaded.
+Use this command only when v2.0.0 is a published stable release. A source
+revision, example or candidate composition does not prove public availability.
 
 - `github.com/faustbrian/go-workflow/v2` contains definitions, history, replay,
   transitions, durable work, processors, workers, inspection, and operator
