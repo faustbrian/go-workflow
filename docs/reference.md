@@ -96,8 +96,8 @@ constructors and inject `Clock`, store, processor, callback, and sink interfaces
 Use a deterministic clock implementation and explicit timestamps and IDs;
 tests must not mutate process-global state.
 
-The source has no OS-specific build tags. Release CI verifies Go 1.27.0 on
-Ubuntu 24.04 amd64; other Go-supported targets and PostgreSQL deployments are
+The source has no OS-specific build tags. Go 1.27.0 remains the public
+module minimum; release qualification uses Go 1.27.2 on Ubuntu 24.04 amd64; other Go-supported targets and PostgreSQL deployments are
 not claimed as release-qualified environments. Capacity, schema, restore,
 rolling-deploy, and observability guidance is in [Operations](operations.md).
 Executable failure and benchmark evidence is in

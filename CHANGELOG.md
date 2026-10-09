@@ -9,6 +9,10 @@ and releases use Semantic Versioning.
 
 ### Changed
 
+- Use Go 1.27.2 for development and release qualification to include
+  patched standard-library HTTP and TLS behavior. The public module
+  minimum remains Go 1.27.0; consumers should rebuild with the patched
+  compiler.
 - Publish root and PostgreSQL packages together at
   `github.com/faustbrian/go-workflow/v3`, retaining Go 1.27.0. The pgx 5.11
   `Rows.TypeMap` requirement can break custom transaction Rows supplied to
