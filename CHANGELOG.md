@@ -5,8 +5,17 @@ and releases use Semantic Versioning.
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-10-09
+
 ### Changed
 
+- Publish root and PostgreSQL packages together at
+  `github.com/faustbrian/go-workflow/v3`, retaining Go 1.27.0. The pgx 5.11
+  `Rows.TypeMap` requirement can break custom transaction Rows supplied to
+  `Store.Stage`, so this is a major release rather than a compatible patch.
+  Import both v3 packages together and adapt custom Rows as described in
+  [v3 migration guidance](docs/migration-v3.md); owned runtime behavior and
+  PostgreSQL schemas remain unchanged.
 - Adopt Moby API 1.56.0 for Docker-backed integration fixtures while
   retaining the supported workflow and PostgreSQL persistence contracts.
 - Update PostgreSQL integration fixtures to Testcontainers 0.44.0 and its
@@ -202,6 +211,7 @@ and releases use Semantic Versioning.
 - `StepChild` definitions now require `ChildDefinition`; existing child steps
   must pin the exact registered child name, version, and fingerprint.
 
-[Unreleased]: https://github.com/faustbrian/go-workflow/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/faustbrian/go-workflow/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/faustbrian/go-workflow/compare/v2.0.0...v3.0.0
 [2.0.0]: https://github.com/faustbrian/go-workflow/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/faustbrian/go-workflow/releases/tag/v1.0.0

@@ -16,7 +16,7 @@ if (( $# > 1 )); then
 fi
 
 module_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-module_path=github.com/faustbrian/go-workflow/v2
+module_path=github.com/faustbrian/go-workflow/v3
 if [[ "$(awk '$1 == "module" { print $2 }' "${module_root}/go.mod")" != "${module_path}" ]]; then
     printf 'owning Workflow module identity mismatch\n' >&2
     exit 1
@@ -56,7 +56,7 @@ fi
 
 go mod init workflow-interoperability.invalid/test
 go mod edit -go=1.27.0
-go mod edit -require=github.com/faustbrian/go-workflow/v2@v2.0.0
+go mod edit -require=github.com/faustbrian/go-workflow/v3@v3.0.0
 go mod edit -require=github.com/faustbrian/go-transactional-outbox@v1.0.0
 go mod edit -require=github.com/faustbrian/go-kafka@v1.0.0
 go mod edit -require=github.com/faustbrian/go-transactional-outbox/adapters/kafka@v1.0.0

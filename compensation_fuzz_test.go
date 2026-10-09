@@ -3,7 +3,7 @@ package workflow_test
 import (
 	"testing"
 
-	workflow "github.com/faustbrian/go-workflow/v2"
+	workflow "github.com/faustbrian/go-workflow/v3"
 )
 
 func FuzzCompensationDispatchBoundaries(fuzz *testing.F) {
