@@ -7,6 +7,8 @@ and releases use Semantic Versioning.
 
 ### Changed
 
+- Adopt Moby API 1.56.0 for Docker-backed integration fixtures while
+  retaining the supported workflow and PostgreSQL persistence contracts.
 - Update PostgreSQL integration fixtures to Testcontainers 0.44.0 and its
   compatible Docker dependency selections; the workflow API and PostgreSQL
   persistence contract remain unchanged.
