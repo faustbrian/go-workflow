@@ -5,6 +5,15 @@ and releases use Semantic Versioning.
 
 ## [Unreleased]
 
+### Changed
+
+- Adopt pgx 5.11.0 for PostgreSQL persistence, retaining caller-owned pools,
+  transaction atomicity, lease fencing, and UTC-normalized workflow instants.
+  Connection-string parsing and timestamp decoding follow the driver's
+  [5.11 compatibility changes](https://github.com/jackc/pgx/releases/tag/v5.11.0).
+  Custom implementations of `pgx.Rows`, including caller-owned mocks, must
+  implement the new `TypeMap` method.
+
 ## [2.0.0] - 2026-10-03
 
 ### Fixed
