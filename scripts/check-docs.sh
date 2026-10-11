@@ -6,8 +6,8 @@ required=(
     README.md CHANGELOG.md COMPATIBILITY.md CONTRIBUTING.md DEPRECATION.md
     LICENSE SECURITY.md SUPPORT.md docs/README.md docs/architecture.md
     docs/operations.md docs/reference.md docs/troubleshooting.md
-    docs/verification.md docs/migration-v2.md docs/threat-model-v1.md
-    docs/threat-model-v2.md example_test.go durable_compensation_example_test.go
+    docs/verification.md docs/migration-v2.md docs/migration-v3.md docs/threat-model-v1.md
+    docs/threat-model-v2.md docs/threat-model-v3.md example_test.go durable_compensation_example_test.go
     postgres/durable_compensation_recipe_integration_test.go
 )
 
@@ -32,8 +32,8 @@ test -s "${quickstart}/main.go"
 go run "${quickstart}/main.go"
 
 for package in \
-    github.com/faustbrian/go-workflow/v2 \
-    github.com/faustbrian/go-workflow/v2/postgres; do
+    github.com/faustbrian/go-workflow/v3 \
+    github.com/faustbrian/go-workflow/v3/postgres; do
     go doc "${package}" >/dev/null
 done
 
@@ -47,7 +47,7 @@ for example in Example_durableOrchestration Example_durableCompensationRecovery;
     ' "${quickstart}/example-test.json" >/dev/null
 done
 
-grep -Fq 'go get github.com/faustbrian/go-workflow/v2@v2.0.0' README.md
+grep -Fq 'go get github.com/faustbrian/go-workflow/v3@v3.0.0' README.md
 grep -Fq 'docs/README.md' README.md
 grep -Fq 'docs/troubleshooting.md' README.md
 grep -Fq 'example_test.go' README.md

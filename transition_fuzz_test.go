@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	workflow "github.com/faustbrian/go-workflow/v2"
+	workflow "github.com/faustbrian/go-workflow/v3"
 )
 
 func FuzzPendingWorkValidation(f *testing.F) {

@@ -55,7 +55,7 @@ Before publication, `make -f verification/package.mk interoperability` runs
 `scripts/check-interoperability.sh candidate`: its disposable non-releasable
 module replaces only Workflow with the exact owning source. The script defaults
 to `public`; explicit `public` has the same strict no-replacement behavior and
-uses the published v2.0.0 after release. That actual public consumer is a separate
+uses the published v3.0.0 after release. That actual public consumer is a separate
 required publication check, not satisfied by candidate composition. Both full
 modes retain the PostgreSQL and Kafka runtime tests. The optional
 `candidate --compile-only` verifies fixture compilation without starting those

@@ -20,6 +20,9 @@
   capacity, observability, and security.
 - [V1 threat model and residual ownership](threat-model-v1.md): source scope,
   trust boundaries, safeguards, and application-owned risk controls.
+- [V3 source model](threat-model-v3.md): retained admission and caller-owned
+  transaction boundaries across the nominal migration.
+- [V3 migration](migration-v3.md): coordinated imports and custom Rows changes.
 - [V2 source model](threat-model-v2.md): corrected admission and pending release
   scope, with residual ownership retained.
 - [V2 migration](migration-v2.md): module identity, Go minimum and consumer rollout.

@@ -1,10 +1,17 @@
 # Compatibility Policy
 
 The repository has one releasable module at
-`github.com/faustbrian/go-workflow/v2`. It follows semantic versioning and uses
-root tags such as `v2.0.0`. The `workflow` and `postgres` packages are released
+`github.com/faustbrian/go-workflow/v3`. It follows semantic versioning and uses
+root tags such as `v3.0.0`. The `workflow` and `postgres` packages are released
 together under that tag; `postgres/` is not a nested module and does not use a
 directory-prefixed tag.
+
+V3 retains the owned v2 workflow and persistence semantics, but uses distinct
+root and PostgreSQL package identities. The pgx 5.11 dependency extends the
+`pgx.Rows` interface reached through the public `Store.Stage` transaction
+parameter; custom Rows implementations require `TypeMap`. This source break
+is why the release uses a new major version. See
+[v3 migration guidance](docs/migration-v3.md).
 
 V2's nominal module and package identities and minimum
 Go 1.27.0 are intentional compatibility breaks from published v1.0.0 (Go
@@ -26,7 +33,7 @@ Specification-backed modules MUST NOT diverge from their declared standards.
 Ambiguities require documented decisions and stable tests. Deprecated APIs
 follow [`DEPRECATION.md`](DEPRECATION.md).
 
-Go 1.27.0 is the supported and release-tested toolchain. Release CI runs on
-Ubuntu 24.04 amd64. The packages contain no OS-specific build constraints, but
+Go 1.27.0 remains the public module minimum. Owned release qualification
+uses Go 1.27.2 on Ubuntu 24.04 amd64. The packages contain no OS-specific build constraints, but
 that does not claim release qualification for every Go-supported platform or
 every PostgreSQL deployment.
