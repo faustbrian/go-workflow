@@ -61,6 +61,19 @@ modes retain the PostgreSQL and Kafka runtime tests. The optional
 `candidate --compile-only` verifies fixture compilation without starting those
 services; it is not runtime composition or public-consumer evidence.
 
+## Ordinary and full routes
+
+`GOWORK=off go test ./...` runs untagged tests and deterministic fuzz seeds.
+`make check` and `make ci` use the checksum-verified public verifier's bounded
+local route, with one named worker shutdown/join and race-winner run under the
+race detector. The Make routes retain the catalog's `integration` tag, so the
+PostgreSQL tests use `WORKFLOW_POSTGRES_URL` or Docker/Testcontainers. Base-free
+local checks do not run active fuzz; select a native target with `-fuzztime=2s`
+for development, or use changed-source CI's selected smoke. Ordinary scheduled
+CI is also bounded. `make ci` validates specification structure offline;
+`make check-full` explicitly checks authoritative sources online and retains
+the original full operations and budgets.
+
 ## Release gates
 
 The scoped release contract includes formatting, tidy, safety, vet, tests,
@@ -69,8 +82,8 @@ license, SBOM, fuzz, exact viable mutation kills, documentation, API,
 conformance, interoperability, benchmarks, and clean-consumer build proof. Go
 commands use a disposable task-owned build cache.
 
-`make soak` runs a bounded accelerated continue-as-new replay and worker-churn
-audit. Its default 72 batches advance the deterministic workflow clock by one
+`make -f verification/package.mk soak` runs a bounded accelerated continue-as-new
+replay and worker-churn audit. Its default 72 batches advance the deterministic workflow clock by one
 hour each, exercising three days of logical execution without waiting three
 wall-clock days. Each batch processes 128 deterministic replays and 64 leased
 work items under bounded concurrency; periodic checkpoints enforce retained-

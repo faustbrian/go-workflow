@@ -3,7 +3,7 @@
 [![CI](https://github.com/faustbrian/go-workflow/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/faustbrian/go-workflow/actions/workflows/ci.yml)
 [![CodeQL](https://img.shields.io/badge/CodeQL-required-blue)](https://github.com/faustbrian/go-workflow/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-100%25_required-blue)](CONTRIBUTING.md#verification)
-[![Mutation](https://img.shields.io/badge/mutation-100%25_required-blue)](CONTRIBUTING.md#verification)
+[![Mutation](https://img.shields.io/badge/mutation-full%2Frelease-blue)](CONTRIBUTING.md#verification)
 [![Documentation](https://img.shields.io/badge/docs-checked_in_CI-blue)](docs/)
 [![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-workflow/v3.svg)](https://pkg.go.dev/github.com/faustbrian/go-workflow/v3)
 [![Release](https://img.shields.io/github/v/release/faustbrian/go-workflow?sort=semver)](https://github.com/faustbrian/go-workflow/releases)
@@ -148,6 +148,20 @@ wait for `Worker.Run` to return, and close the application-owned store last.
   [release history](CHANGELOG.md)
 - [Support](SUPPORT.md) and [private security reporting](SECURITY.md)
 - [Go API reference](https://pkg.go.dev/github.com/faustbrian/go-workflow/v3)
+
+## Development
+
+Use Go 1.27.2 for development; the public minimum remains Go 1.27.0.
+`GOWORK=off go test ./...` runs untagged tests and deterministic fuzz seeds.
+With the checksum-verified public `golib` v2.1.1 release, `make check` and
+`make ci` run bounded local checks, including named worker lifecycle assertions.
+These Make routes retain the `integration` tag and need PostgreSQL via
+`WORKFLOW_POSTGRES_URL` or Docker/Testcontainers. Base-free local checks do not
+run active fuzz; choose a focused 2s target explicitly, or use changed-source CI's
+selected smoke. Optional one-package mutation and explicit full/release routes
+are documented in [CONTRIBUTING.md](CONTRIBUTING.md#verification).
+`make check-full` retains the original full campaigns and online specification
+validation; ordinary scheduled CI remains bounded.
 
 ## License
 

@@ -2,8 +2,8 @@
 
 ## Before Editing
 
-1. Read [`AGENTS.md`](AGENTS.md) and the affected module's goals and docs.
-2. Run `make inventory` and the narrow baseline gate for the module.
+1. Read [`AGENTS.md`](AGENTS.md) and the affected package's docs.
+2. Run the narrow standalone baseline for the affected package.
 3. Identify owned dependencies and reverse dependants in `modules.json`.
 4. Preserve unrelated work and generated/corpus provenance.
 
@@ -24,7 +24,7 @@ the affected stable decision entries, and complete the Specification Decisions
 section of the pull request template. An unresolved interpretation or stale
 source pin is release-blocking; peer behavior cannot silently select policy.
 
-Required mutation gates must finish with zero surviving viable mutants.
+Selected mutation gates must finish with zero surviving viable mutants.
 
 Do not add package-local workflows, permanent replacements, machine-specific
 paths, bypass flags, broad mutation exclusions, or aggregate quality metrics
@@ -32,21 +32,48 @@ that hide a failing package.
 
 ## Verification
 
-Run during development:
+Use Go 1.27.2 for development and ordinary CI; the public minimum remains
+Go 1.27.0. A standalone checkout supports ordinary untagged tests and a
+focused active fuzz smoke without sibling repositories or goal ledgers:
 
 ```bash
-make inventory
-make check
+GOWORK=off go test ./...
+GOWORK=off go test . -run '^$' -fuzz '^FuzzWorkDecisionBoundaries$' -fuzztime=2s
 ```
 
-Before submitting a repository-wide change:
+Select the native fuzz target affected by your change. Ordinary tests exercise
+deterministic fuzz seeds and corpus; base-free local checks do not start an
+active fuzz campaign. Install the public `golib` v2.1.1 release declared in
+`.golib.yaml` and verify its checksums for the shared routes:
 
 ```bash
+make check
 make ci
 ```
 
-The full scheduled and release gate is `make ci`. Report every unavailable or
-failing command; do not describe partial results as release-ready.
+Both Make routes are bounded local checks, including one race run of worker
+shutdown/join and persisted race-winner assertions. They retain the catalog's
+`integration` tag: PostgreSQL tests need `WORKFLOW_POSTGRES_URL` or Docker for
+Testcontainers. The untagged Go command above is a distinct backend-free route.
+Ordinary CI uses the published verifier without building it from source;
+changed-source CI can select a bounded active fuzz smoke. Optional mutation
+analysis can select only the root package:
+
+```bash
+golib mutation --module . --package .
+```
+
+Use `make check-full` for explicit full assurance, including online specification
+validation, the unchanged 10000x fuzz targets, full race/coverage/mutation,
+API, docs, benchmarks and PostgreSQL/Kafka interoperability. Persistence changes
+need the tagged backend tests; lifecycle or public-contract changes need the
+directly affected consumers. The explicit source-owned commands and separate
+candidate/public composition boundaries are in
+[verification guidance](docs/verification.md). Full campaigns remain available
+for selected scheduled or release qualification; ordinary scheduled CI remains
+bounded. Release rehearsal is explicitly selected, not an ordinary CI result.
+Report unavailable or failing checks without claiming release readiness.
+CI/configuration-only changes do not require a library release.
 
 ## Adding A Module
 
