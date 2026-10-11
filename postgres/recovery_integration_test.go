@@ -113,7 +113,9 @@ func mustRecoveryPool(t *testing.T, ctx context.Context, connection string) *pgx
 	if err != nil {
 		t.Fatalf("connect recovery PostgreSQL: %v", err)
 	}
-	if err := pool.Ping(ctx); err != nil {
+	readyCtx, readyCancel := context.WithTimeout(ctx, 30*time.Second)
+	defer readyCancel()
+	if err := waitRecoveryReady(readyCtx, pool.Ping, 100*time.Millisecond); err != nil {
 		pool.Close()
 		t.Fatalf("ping recovery PostgreSQL: %v", err)
 	}
