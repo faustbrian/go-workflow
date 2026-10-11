@@ -43,7 +43,7 @@ GOWORK=off go test . -run '^$' -fuzz '^FuzzWorkDecisionBoundaries$' -fuzztime=2s
 
 Select the native fuzz target affected by your change. Ordinary tests exercise
 deterministic fuzz seeds and corpus; base-free local checks do not start an
-active fuzz campaign. Install the public `golib` v2.1.1 release declared in
+active fuzz campaign. Install the public `golib` v2.1.3 release declared in
 `.golib.yaml` and verify its checksums for the shared routes:
 
 ```bash

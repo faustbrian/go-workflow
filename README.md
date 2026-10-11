@@ -153,7 +153,7 @@ wait for `Worker.Run` to return, and close the application-owned store last.
 
 Use Go 1.27.2 for development; the public minimum remains Go 1.27.0.
 `GOWORK=off go test ./...` runs untagged tests and deterministic fuzz seeds.
-With the checksum-verified public `golib` v2.1.1 release, `make check` and
+With the checksum-verified public `golib` v2.1.3 release, `make check` and
 `make ci` run bounded local checks, including named worker lifecycle assertions.
 These Make routes retain the `integration` tag and need PostgreSQL via
 `WORKFLOW_POSTGRES_URL` or Docker/Testcontainers. Base-free local checks do not
