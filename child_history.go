@@ -60,7 +60,7 @@ func (progress ChildProgress) Input() []byte { return cloneBytes(progress.input)
 // Result returns an owned copy of the known child terminal result.
 func (progress ChildProgress) Result() []byte { return cloneBytes(progress.result) }
 
-// Code returns the stable known-failure code, or empty for other states.
+// Code returns the latest stable child failure or creation-uncertainty code.
 func (progress ChildProgress) Code() string { return progress.code }
 
 // Attempt returns the latest one-based child-start attempt.

@@ -19,15 +19,22 @@ type migrationKey struct {
 // explicit version migration. Registry callers must persist the migrated state
 // and target version atomically.
 type MigrationState struct {
+	// Data is opaque caller-owned migration state; this mutable carrier does not
+	// copy its byte slice.
 	Data []byte
 }
 
 // Migration declares one explicit directed version edge.
 type Migration struct {
-	Name        string
+	// Name selects the same definition family at both ends of this direct edge.
+	Name string
+	// FromVersion selects an explicitly registered source version.
 	FromVersion string
-	ToVersion   string
-	Apply       func(MigrationState) (MigrationState, error)
+	// ToVersion selects a different explicitly registered target version.
+	ToVersion string
+	// Apply is a borrowed callback; registry compilation and replay never invoke it
+	// or copy its state.
+	Apply func(MigrationState) (MigrationState, error)
 }
 
 // Registry is an immutable explicit definition and migration registry.
@@ -41,7 +48,10 @@ func CompileDefinitions(definitions ...Definition) (*Registry, error) {
 	return CompileRegistry(definitions, nil)
 }
 
-// CompileRegistry validates all immutable definitions and explicit migrations.
+// CompileRegistry validates immutable definitions and explicit direct migration
+// edges, including exact child pins. It invokes no migration callback. Registry
+// maps are immutable, but borrowed callbacks and their captured mutable state
+// still require caller-owned synchronization, lifetime and copying policy.
 func CompileRegistry(definitions []Definition, migrations []Migration) (*Registry, error) {
 	registry := &Registry{
 		definitions: make(map[definitionKey]Definition, len(definitions)),

@@ -48,7 +48,8 @@ func (progress CompensationProgress) StepName() string { return progress.stepNam
 // Status returns the durable compensation state.
 func (progress CompensationProgress) Status() CompensationProgressStatus { return progress.status }
 
-// ScheduledSequence returns persisted compensation ordering.
+// ScheduledSequence returns the history position of compensation admission.
+// It orders inspection output, not automatic reverse-order external execution.
 func (progress CompensationProgress) ScheduledSequence() uint64 { return progress.scheduledSequence }
 
 // Attempt returns the latest one-based attempt.

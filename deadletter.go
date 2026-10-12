@@ -40,15 +40,28 @@ func (action DeadLetterResolutionAction) String() string {
 // DeadLetterResolutionSpec supplies one caller-authorized audited command.
 // Callers remain responsible for authenticating and authorizing Actor.
 type DeadLetterResolutionSpec struct {
-	CommandID  string
-	WorkID     string
-	Token      uint64
-	Action     DeadLetterResolutionAction
-	Actor      string
-	Reason     string
+	// CommandID is the caller-selected store-wide identity binding audit data and
+	// the complete command.
+	CommandID string
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
+	// Token is the expected nonzero ownership fence; the store, not the constructor,
+	// enforces freshness.
+	Token uint64
+	// Action selects retry or discard without altering workflow history.
+	Action DeadLetterResolutionAction
+	// Actor is a bounded principal identifier already authenticated and authorized by the caller.
+	Actor string
+	// Reason is a bounded stable audit code; it must not contain confidential
+	// free-form diagnostics.
+	Reason string
+	// OccurredAt supplies the persisted decision time; constructors remove monotonic
+	// clock data and use UTC.
 	OccurredAt time.Time
-	RetryAt    time.Time
-	Deadline   time.Time
+	// RetryAt is no earlier than OccurredAt for retry and zero for discard.
+	RetryAt time.Time
+	// Deadline follows RetryAt for retry and is zero for discard.
+	Deadline time.Time
 }
 
 // DeadLetterResolution is one immutable idempotent fenced operator command.
@@ -154,11 +167,17 @@ func deadLetterResolutionFingerprint(resolution DeadLetterResolution) string {
 
 // DeadLetterRecordSpec supplies one adapter-decoded unresolved dead letter.
 type DeadLetterRecordSpec struct {
-	Work        PendingWork
-	Attempt     uint32
-	Token       uint64
+	// Work is the unresolved durable record, copied into the accepted immutable value.
+	Work PendingWork
+	// Attempt is the positive claim count that produced the dead letter.
+	Attempt uint32
+	// Token is the expected nonzero ownership fence; the store, not the constructor,
+	// enforces freshness.
+	Token uint64
+	// FailureCode is a bounded stable poison-work classification.
 	FailureCode string
-	FailedAt    time.Time
+	// FailedAt is the nonzero persisted dead-letter time.
+	FailedAt time.Time
 }
 
 // DeadLetterRecord is immutable unresolved poison-work state.
@@ -209,8 +228,10 @@ func (record DeadLetterRecord) valid() bool {
 
 // DeadLetterCursorSpec supplies a decoded stable failure-time cursor.
 type DeadLetterCursorSpec struct {
+	// FailedAt is the nonzero failure-time key, normalized to UTC.
 	FailedAt time.Time
-	WorkID   string
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
 }
 
 // DeadLetterCursor is an immutable exclusive failure-time and identity cursor.
@@ -241,7 +262,9 @@ func (cursor DeadLetterCursor) valid() bool {
 
 // DeadLetterQuerySpec supplies one bounded stable unresolved-letter request.
 type DeadLetterQuerySpec struct {
+	// After is the exclusive failure-time/identity key; its zero value starts the list.
 	After DeadLetterCursor
+	// Limit bounds this page from 1 through MaxDeadLetterPageItems.
 	Limit uint32
 }
 
@@ -331,6 +354,10 @@ func deadLetterCursorBefore(cursor DeadLetterCursor, failedAt time.Time, workID 
 // DeadLetterStore exposes stable unresolved-letter inspection and audited,
 // idempotent fenced resolution. Callers must authorize resolution actors.
 type DeadLetterStore interface {
+	// ListDeadLetters returns bounded ordered unresolved records; the caller must
+	// authorize inspection.
 	ListDeadLetters(context.Context, DeadLetterQuery) (DeadLetterPage, error)
+	// ResolveDeadLetter atomically audits an authorized fenced retry or discard with
+	// exact command replay.
 	ResolveDeadLetter(context.Context, DeadLetterResolution) error
 }

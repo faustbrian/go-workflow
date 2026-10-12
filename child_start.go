@@ -29,8 +29,11 @@ const (
 
 // ChildStartOutcomeSpec supplies one explicit bounded creation result.
 type ChildStartOutcomeSpec struct {
-	Kind      ChildStartOutcomeKind
-	Code      string
+	// Kind distinguishes known creation, known absence and uncertain creation.
+	Kind ChildStartOutcomeKind
+	// Code is empty for ChildStarted and required for failure or unknown outcome.
+	Code string
+	// Retryable permits policy retry only for a known failure, never an unknown outcome.
 	Retryable bool
 }
 
@@ -74,20 +77,37 @@ func (outcome ChildStartOutcome) valid() bool {
 
 // ChildStartRequestSpec supplies one version-pinned bounded creation attempt.
 type ChildStartRequestSpec struct {
+	// ParentInstanceID identifies the durable parent; it does not authenticate the caller.
 	ParentInstanceID string
+	// ParentDefinition is the exact parent behavior pin.
 	ParentDefinition DefinitionReference
-	StepName         string
-	ChildID          string
-	ChildDefinition  DefinitionReference
-	Attempt          uint32
-	MaxAttempts      uint32
-	IdempotencyKey   string
-	StartedAt        time.Time
-	Deadline         time.Time
-	Input            []byte
-	InputLimit       uint32
-	TenantID         string
-	CorrelationID    string
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// ChildID is the stable child identity that the caller-owned creator must deduplicate.
+	ChildID string
+	// ChildDefinition is the exact child behavior pin the creator must retain.
+	ChildDefinition DefinitionReference
+	// Attempt is the one-based semantic attempt, distinct from durable lease redelivery.
+	Attempt uint32
+	// MaxAttempts bounds semantic attempts, including the first.
+	MaxAttempts uint32
+	// IdempotencyKey identifies this semantic external attempt, not the lease claim;
+	// the effect owner must honor it.
+	IdempotencyKey string
+	// StartedAt supplies the persisted attempt start used to derive its deadline.
+	StartedAt time.Time
+	// Deadline is the persisted attempt deadline used for the callback context;
+	// it follows StartedAt and cannot forcibly stop external code.
+	Deadline time.Time
+	// Input is opaque application data copied into accepted immutable values; no
+	// redaction or encryption is applied.
+	Input []byte
+	// InputLimit is a positive byte allowance no greater than MaxPayloadBytes.
+	InputLimit uint32
+	// TenantID is optional bounded routing metadata, not an authentication or isolation claim.
+	TenantID string
+	// CorrelationID is optional bounded correlation data, not an unbounded metric label.
+	CorrelationID string
 }
 
 // ChildStartRequest is immutable attempt metadata supplied to a caller-owned
@@ -184,6 +204,8 @@ func (request ChildStartRequest) valid() bool {
 // identity. Implementations must be idempotent and explicitly report unknown
 // outcomes.
 type ChildStarter interface {
+	// Start honors cancellation, deduplicates the stable child identity and reports
+	// uncertainty explicitly.
 	Start(context.Context, ChildStartRequest) ChildStartOutcome
 }
 

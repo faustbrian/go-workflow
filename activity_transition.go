@@ -42,7 +42,10 @@ type activityDispatchDocument struct {
 	IdempotencyKey string `json:"idempotency_key"`
 }
 
-// DecodeActivityDispatch validates bounded durable work metadata.
+// DecodeActivityDispatch validates byte-bounded durable dispatch metadata without external
+// I/O. It rejects unknown fields and trailing JSON values using encoding/json;
+// that decoder still accepts duplicate keys and case-insensitive field matches.
+// The result carries identities, not proof of authorization or a current lease.
 func DecodeActivityDispatch(payload []byte) (ActivityDispatch, error) {
 	if len(payload) == 0 {
 		return ActivityDispatch{}, ErrInvalidActivityTransition
@@ -76,18 +79,33 @@ func DecodeActivityDispatch(payload []byte) (ActivityDispatch, error) {
 
 // ActivityScheduleSpec supplies atomic history and first-attempt due work.
 type ActivityScheduleSpec struct {
-	TransitionID   string
-	WorkID         string
-	Instance       Instance
-	Definition     Definition
-	StepName       string
-	Attempt        uint32
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
+	TransitionID string
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// Attempt must be 1 for first admission.
+	Attempt uint32
+	// IdempotencyKey identifies this semantic external attempt, not the lease claim;
+	// the effect owner must honor it.
 	IdempotencyKey string
-	ScheduledAt    time.Time
-	Deadline       time.Time
-	Input          []byte
-	TenantID       string
-	CorrelationID  string
+	// ScheduledAt supplies the persisted decision time, no earlier than the replayed state.
+	ScheduledAt time.Time
+	// Deadline bounds durable work admission; external code must separately honor cancellation.
+	Deadline time.Time
+	// Input is opaque application data copied into accepted immutable values; no
+	// redaction or encryption is applied.
+	Input []byte
+	// TenantID is optional bounded routing metadata, not an authentication or isolation claim.
+	TenantID string
+	// CorrelationID is optional bounded correlation data, not an unbounded metric label.
+	CorrelationID string
 }
 
 // NewActivitySchedule records bounded activity input before dispatching work.
@@ -147,11 +165,18 @@ func NewActivitySchedule(spec ActivityScheduleSpec) (Transition, error) {
 // ActivityAttemptStartSpec supplies the persisted decision required before an
 // activity side effect begins.
 type ActivityAttemptStartSpec struct {
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
 	TransitionID string
-	Lease        WorkLease
-	Instance     Instance
-	Definition   Definition
-	StartedAt    time.Time
+	// Lease supplies work and claimed ownership metadata; validation does not query
+	// the current store fence.
+	Lease WorkLease
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StartedAt supplies the persisted attempt start used to derive its deadline.
+	StartedAt time.Time
 }
 
 // NewActivityAttemptStart creates the attempt-start transition that must
@@ -241,13 +266,22 @@ func NewActivityAttemptStart(spec ActivityAttemptStartSpec) (Transition, error) 
 
 // ActivityAttemptOutcomeSpec supplies one known or unknown persisted result.
 type ActivityAttemptOutcomeSpec struct {
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
 	TransitionID string
-	Instance     Instance
-	Definition   Definition
-	StepName     string
-	Attempt      uint32
-	OccurredAt   time.Time
-	Outcome      ActivityOutcome
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// Attempt is the one-based semantic attempt, distinct from durable lease redelivery.
+	Attempt uint32
+	// OccurredAt supplies the persisted decision time; constructors remove monotonic
+	// clock data and use UTC.
+	OccurredAt time.Time
+	// Outcome is the validated known or unknown result to persist for this running attempt.
+	Outcome ActivityOutcome
 }
 
 // NewActivityAttemptOutcome records an explicit bounded activity outcome.
@@ -300,16 +334,28 @@ func NewActivityAttemptOutcome(spec ActivityAttemptOutcomeSpec) (Transition, err
 
 // ActivityRetrySpec supplies one persisted retry decision and next-attempt work.
 type ActivityRetrySpec struct {
-	TransitionID   string
-	WorkID         string
-	Instance       Instance
-	Definition     Definition
-	StepName       string
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
+	TransitionID string
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// IdempotencyKey identifies this semantic external attempt, not the lease claim;
+	// the effect owner must honor it.
 	IdempotencyKey string
-	ScheduledAt    time.Time
-	Deadline       time.Time
-	TenantID       string
-	CorrelationID  string
+	// ScheduledAt supplies the persisted decision time, no earlier than the replayed state.
+	ScheduledAt time.Time
+	// Deadline bounds durable work admission; external code must separately honor cancellation.
+	Deadline time.Time
+	// TenantID is optional bounded routing metadata, not an authentication or isolation claim.
+	TenantID string
+	// CorrelationID is optional bounded correlation data, not an unbounded metric label.
+	CorrelationID string
 }
 
 // NewActivityRetry atomically records deterministic retry admission and work.

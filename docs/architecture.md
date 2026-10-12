@@ -58,7 +58,10 @@ definition name, version, and fingerprint.
 
 ## Compensation
 
-Compensation is explicit and ordered from persisted successful activities.
+Compensation is explicitly scheduled for persisted successful activities.
+Inspection orders compensation progress by its admission sequence; applications
+choose execution and dependency order. No automatic reverse-order rollback is
+performed when orchestration reaches a known failure.
 Every compensating call has an independent attempt, deadline, idempotency key,
 retry policy, result, and unknown-outcome state. Manual resolution is audited
 and remains distinguishable from successful compensation.

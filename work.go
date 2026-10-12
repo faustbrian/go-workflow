@@ -21,10 +21,15 @@ var (
 
 // WorkClaimRequestSpec supplies one bounded due-work claim operation.
 type WorkClaimRequestSpec struct {
-	Owner         string
-	Now           time.Time
+	// Owner is the bounded lease-owner identity compared by store mutations.
+	Owner string
+	// Now supplies trusted caller time for due, expiry and deadline comparisons.
+	Now time.Time
+	// LeaseDuration is positive and at most MaxWorkLeaseDuration; a store may clamp
+	// expiry to the work deadline.
 	LeaseDuration time.Duration
-	Limit         uint32
+	// Limit bounds this claim from 1 through MaxWorkClaimItems.
+	Limit uint32
 }
 
 // WorkClaimRequest is an immutable atomic due-work admission request.
@@ -68,11 +73,19 @@ func (request WorkClaimRequest) Valid() bool {
 
 // WorkLeaseSpec supplies one durable claimed-work record.
 type WorkLeaseSpec struct {
-	Work      PendingWork
-	Owner     string
-	Token     uint64
-	Attempt   uint32
+	// Work is copied into the immutable lease and returned through copying accessors.
+	Work PendingWork
+	// Owner is the bounded lease-owner identity compared by store mutations.
+	Owner string
+	// Token is the expected nonzero ownership fence; the store, not the constructor,
+	// enforces freshness.
+	Token uint64
+	// Attempt is the positive durable claim count, not the external semantic-attempt number.
+	Attempt uint32
+	// ClaimedAt supplies claim time; constructors do not read a clock or store.
 	ClaimedAt time.Time
+	// ExpiresAt is after ClaimedAt, within MaxWorkLeaseDuration and no later than
+	// the work deadline.
 	ExpiresAt time.Time
 }
 
@@ -133,10 +146,17 @@ func (lease WorkLease) Valid() bool {
 
 // WorkLeaseRenewalSpec supplies one fenced lease extension.
 type WorkLeaseRenewalSpec struct {
-	WorkID   string
-	Owner    string
-	Token    uint64
-	Now      time.Time
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
+	// Owner is the bounded lease-owner identity compared by store mutations.
+	Owner string
+	// Token is the expected nonzero ownership fence; the store, not the constructor,
+	// enforces freshness.
+	Token uint64
+	// Now is trusted caller time for the store freshness check.
+	Now time.Time
+	// ExtendBy is positive and at most MaxWorkLeaseDuration; stores may clamp to the
+	// work deadline.
 	ExtendBy time.Duration
 }
 
@@ -184,9 +204,14 @@ func (renewal WorkLeaseRenewal) Valid() bool {
 
 // WorkCompletionSpec supplies one fenced successful terminal mutation.
 type WorkCompletionSpec struct {
-	WorkID      string
-	Owner       string
-	Token       uint64
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
+	// Owner is the bounded lease-owner identity compared by store mutations.
+	Owner string
+	// Token is the expected nonzero ownership fence; the store, not the constructor,
+	// enforces freshness.
+	Token uint64
+	// CompletedAt supplies trusted time for the store live-fence comparison.
 	CompletedAt time.Time
 }
 
@@ -240,13 +265,21 @@ const (
 
 // WorkFailureSpec supplies one fenced known failure decision.
 type WorkFailureSpec struct {
-	WorkID      string
-	Owner       string
-	Token       uint64
-	FailedAt    time.Time
-	Code        string
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
+	// Owner is the bounded lease-owner identity compared by store mutations.
+	Owner string
+	// Token is the expected nonzero ownership fence; the store, not the constructor,
+	// enforces freshness.
+	Token uint64
+	// FailedAt supplies trusted time for the live-fence comparison.
+	FailedAt time.Time
+	// Code is a bounded stable classification, not automatically redacted application data.
+	Code string
+	// Disposition selects retry admission or dead-letter isolation, not successful completion.
 	Disposition WorkDisposition
-	RetryAt     time.Time
+	// RetryAt must follow FailedAt for retry and be zero for a dead letter.
+	RetryAt time.Time
 }
 
 // WorkFailure is an immutable fenced retry or dead-letter decision.
@@ -317,8 +350,15 @@ func leaseIdentityValid(workID, owner string, token uint64) bool {
 // WorkStore atomically claims due work and rejects every renewal or terminal
 // mutation whose owner or fencing token is stale.
 type WorkStore interface {
+	// Claim atomically admits due or expired work within the bound and returns newly
+	// allocated ownership fences.
 	Claim(context.Context, WorkClaimRequest) ([]WorkLease, error)
+	// Renew checks current owner, token and expiry and returns the same fence with
+	// updated expiry.
 	Renew(context.Context, WorkLeaseRenewal) (WorkLease, error)
+	// Complete accepts only a current live fence and records work completion, not an
+	// external exactly-once guarantee.
 	Complete(context.Context, WorkCompletion) error
+	// Fail accepts only a current live fence and records retry or dead-letter disposition.
 	Fail(context.Context, WorkFailure) error
 }

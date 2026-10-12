@@ -5,6 +5,14 @@ and releases use Semantic Versioning.
 
 ## [Unreleased]
 
+### Documentation
+
+- Clarify copied values versus borrowed collaborators, explicit compensation
+  ordering, trusted caller time and PostgreSQL receipt/fencing boundaries.
+  Worker concurrency bounds active Run handlers, while cancellation joins
+  cooperating processors; finalization timeouts do not bound total shutdown.
+  Wrapped causes and persisted payloads remain caller-owned redaction inputs.
+
 ## [3.0.0] - 2026-10-09
 
 ### Changed

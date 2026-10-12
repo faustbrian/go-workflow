@@ -18,24 +18,39 @@ var (
 // ActivityExecutionStore is the narrow durable contract needed to execute an
 // activity. Commit and reconciliation must address the same durable store.
 type ActivityExecutionStore interface {
+	// TransitionStore and reconciliation must observe the same authoritative durable records.
 	TransitionStore
+	// ReconcileTransition compares an uncertain identity against its complete
+	// fingerprint before retry.
 	ReconcileTransition(context.Context, TransitionReconciliation) (TransitionReconciliationOutcome, error)
 }
 
 // ActivityWorkProcessorConfig supplies explicit bounded activity execution
 // dependencies. Definitions and activities are immutable explicit registries.
 type ActivityWorkProcessorConfig struct {
-	Store            ActivityExecutionStore
-	Definitions      *Registry
-	Activities       *ActivityRegistry
-	Clock            Clock
-	PageSize         uint32
+	// Store is borrowed for authoritative history, atomic transitions and exact reconciliation.
+	Store ActivityExecutionStore
+	// Definitions is the borrowed immutable registry retaining every referenced behavior version.
+	Definitions *Registry
+	// Activities is the borrowed explicit handler registry; handlers own external
+	// idempotency and cooperation.
+	Activities *ActivityRegistry
+	// Clock is borrowed; decision time must be trusted, prompt and concurrency-safe.
+	Clock Clock
+	// PageSize bounds events per store request, from 1 through MaxHistoryPageEvents.
+	PageSize uint32
+	// MaxHistoryEvents bounds replay traversal, from 1 through MaxInspectionHistoryEvents.
 	MaxHistoryEvents uint32
 }
 
 // ActivityWorkProcessor executes leased activity work without claiming
 // exactly-once external effects. It persists attempt start before invocation
 // and converts an already-running redelivery to an unknown durable outcome.
+// Use NewActivityWorkProcessor; the zero value is uninitialized.
+// Construction borrows collaborators and starts no worker. Process is synchronous
+// and leaves admission, lease renewal and joining to Worker or the caller. Its
+// handler wrapper classifies panics and uncertain execution as unknown; it does
+// not contain store/clock panics or force a noncooperating callback to return.
 type ActivityWorkProcessor struct{ config ActivityWorkProcessorConfig }
 
 // NewActivityWorkProcessor validates one bounded explicit processor.

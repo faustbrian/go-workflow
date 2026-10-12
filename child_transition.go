@@ -52,8 +52,10 @@ type childDispatchDocument struct {
 	IdempotencyKey        string `json:"idempotency_key"`
 }
 
-// DecodeChildDispatch validates bounded durable work metadata without starting
-// or otherwise observing the child workflow.
+// DecodeChildDispatch validates byte-bounded durable dispatch metadata without external
+// I/O. It rejects unknown fields and trailing JSON values using encoding/json;
+// that decoder still accepts duplicate keys and case-insensitive field matches.
+// The result carries identities, not proof of authorization or a current lease.
 func DecodeChildDispatch(payload []byte) (ChildDispatch, error) {
 	if len(payload) > MaxChildDispatchBytes {
 		return ChildDispatch{}, ErrInvalidChildTransition
@@ -81,16 +83,29 @@ func DecodeChildDispatch(payload []byte) (ChildDispatch, error) {
 
 // ChildScheduleSpec supplies atomic parent history and durable child work.
 type ChildScheduleSpec struct {
-	TransitionID  string
-	WorkID        string
-	ChildID       string
-	Instance      Instance
-	Definition    Definition
-	StepName      string
-	ScheduledAt   time.Time
-	Deadline      time.Time
-	Input         []byte
-	TenantID      string
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
+	TransitionID string
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
+	// ChildID is the stable child identity that the caller-owned creator must deduplicate.
+	ChildID string
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// ScheduledAt supplies the persisted decision time, no earlier than the replayed state.
+	ScheduledAt time.Time
+	// Deadline bounds durable work admission; external code must separately honor cancellation.
+	Deadline time.Time
+	// Input is opaque application data copied into accepted immutable values; no
+	// redaction or encryption is applied.
+	Input []byte
+	// TenantID is optional bounded routing metadata, not an authentication or isolation claim.
+	TenantID string
+	// CorrelationID is optional bounded correlation data, not an unbounded metric label.
 	CorrelationID string
 }
 
@@ -136,14 +151,24 @@ func NewChildSchedule(spec ChildScheduleSpec) (Transition, error) {
 // ChildOutcomeSpec supplies one known terminal child result observed by the
 // parent. FailureCode selects failure; an empty code selects success.
 type ChildOutcomeSpec struct {
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
 	TransitionID string
-	Instance     Instance
-	Definition   Definition
-	StepName     string
-	ChildID      string
-	CompletedAt  time.Time
-	Result       []byte
-	FailureCode  string
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// ChildID is the stable child identity that the caller-owned creator must deduplicate.
+	ChildID string
+	// CompletedAt is the observation time, no earlier than replayed state.
+	CompletedAt time.Time
+	// Result is opaque application outcome data copied into accepted immutable
+	// values; no redaction is applied.
+	Result []byte
+	// FailureCode selects known failure when nonempty; an empty code selects success.
+	FailureCode string
 }
 
 // NewChildOutcome records a known child terminal result before parent
@@ -189,15 +214,23 @@ func childTerminalOutcomeAllowed(status ChildProgressStatus) bool {
 
 // ChildStartAttemptSpec supplies the durable pre-creation boundary.
 type ChildStartAttemptSpec struct {
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
 	TransitionID string
-	Lease        WorkLease
-	Instance     Instance
-	Definition   Definition
-	StartedAt    time.Time
+	// Lease supplies work and claimed ownership metadata; validation does not query
+	// the current store fence.
+	Lease WorkLease
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StartedAt supplies the persisted attempt start used to derive its deadline.
+	StartedAt time.Time
 }
 
-// NewChildStartAttempt records a fenced child creation attempt before calling
-// a child-start adapter.
+// NewChildStartAttempt constructs pre-creation history from validated lease
+// metadata. It neither checks the current database fence nor invokes the creator;
+// the caller must commit admission before starting an external effect.
 func NewChildStartAttempt(spec ChildStartAttemptSpec) (Transition, error) {
 	if !spec.Lease.Valid() {
 		return Transition{}, ErrInvalidChildTransition
@@ -241,14 +274,24 @@ func NewChildStartAttempt(spec ChildStartAttemptSpec) (Transition, error) {
 
 // ChildStartAttemptOutcomeSpec supplies one explicit creation result.
 type ChildStartAttemptOutcomeSpec struct {
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
 	TransitionID string
-	Instance     Instance
-	Definition   Definition
-	StepName     string
-	ChildID      string
-	Attempt      uint32
-	OccurredAt   time.Time
-	Outcome      ChildStartOutcome
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// ChildID is the stable child identity that the caller-owned creator must deduplicate.
+	ChildID string
+	// Attempt is the one-based semantic attempt, distinct from durable lease redelivery.
+	Attempt uint32
+	// OccurredAt supplies the persisted decision time; constructors remove monotonic
+	// clock data and use UTC.
+	OccurredAt time.Time
+	// Outcome is the validated known or unknown result to persist for this running attempt.
+	Outcome ChildStartOutcome
 }
 
 // NewChildStartAttemptOutcome persists a known or uncertain creation result.
@@ -288,14 +331,24 @@ func NewChildStartAttemptOutcome(spec ChildStartAttemptOutcomeSpec) (Transition,
 
 // ChildStartRetrySpec supplies one deterministic retry decision and due work.
 type ChildStartRetrySpec struct {
-	TransitionID  string
-	WorkID        string
-	Instance      Instance
-	Definition    Definition
-	StepName      string
-	ScheduledAt   time.Time
-	Deadline      time.Time
-	TenantID      string
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
+	TransitionID string
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// ScheduledAt supplies the persisted decision time, no earlier than the replayed state.
+	ScheduledAt time.Time
+	// Deadline bounds durable work admission; external code must separately honor cancellation.
+	Deadline time.Time
+	// TenantID is optional bounded routing metadata, not an authentication or isolation claim.
+	TenantID string
+	// CorrelationID is optional bounded correlation data, not an unbounded metric label.
 	CorrelationID string
 }
 

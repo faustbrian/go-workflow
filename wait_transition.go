@@ -12,16 +12,27 @@ var (
 
 // TimerScheduleSpec supplies one atomic durable timer admission plan.
 type TimerScheduleSpec struct {
-	TransitionID     string
-	WorkID           string
-	InstanceID       string
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
+	TransitionID string
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
+	// InstanceID identifies the durable instance; syntax validation does not authorize access.
+	InstanceID string
+	// ExpectedSequence is the optimistic history cursor enforced by the committing store.
 	ExpectedSequence uint64
-	Definition       Definition
-	StepName         string
-	ScheduledAt      time.Time
-	Deadline         time.Time
-	TenantID         string
-	CorrelationID    string
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// ScheduledAt is the nonzero decision time from which the step timeout derives due work.
+	ScheduledAt time.Time
+	// Deadline bounds durable work admission; external code must separately honor cancellation.
+	Deadline time.Time
+	// TenantID is optional bounded routing metadata, not an authentication or isolation claim.
+	TenantID string
+	// CorrelationID is optional bounded correlation data, not an unbounded metric label.
+	CorrelationID string
 }
 
 // NewTimerSchedule creates history and due work that must commit atomically.
@@ -61,14 +72,23 @@ func NewTimerSchedule(spec TimerScheduleSpec) (Transition, error) {
 	return transition, nil
 }
 
-// TimerFireSpec supplies one persisted due observation from current fenced
-// timer work. The returned transition must commit before the lease completes.
+// TimerFireSpec supplies a due observation from validated timer-work metadata.
+// Its transition must commit before the work lease completes; constructors do
+// not query the current ownership fence.
 type TimerFireSpec struct {
-	TransitionID     string
-	Lease            WorkLease
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
+	TransitionID string
+	// Lease supplies work and claimed ownership metadata; validation does not query
+	// the current store fence.
+	Lease WorkLease
+	// ExpectedSequence is the optimistic history cursor enforced by the committing store.
 	ExpectedSequence uint64
-	Definition       Definition
-	FiredAt          time.Time
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// FiredAt is no earlier than work availability and strictly before its deadline;
+	// no live store fence is queried.
+	FiredAt time.Time
 }
 
 // NewTimerFire creates the durable timer-fired decision represented by a
@@ -106,13 +126,22 @@ func NewTimerFire(spec TimerFireSpec) (Transition, error) {
 
 // SignalAcceptanceSpec supplies one inbound deduplicated signal transition.
 type SignalAcceptanceSpec struct {
-	InstanceID       string
+	// InstanceID identifies the durable instance; syntax validation does not authorize access.
+	InstanceID string
+	// ExpectedSequence is the optimistic history cursor enforced by the committing store.
 	ExpectedSequence uint64
-	Definition       Definition
-	StepName         string
-	SignalID         string
-	ReceivedAt       time.Time
-	Payload          []byte
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// SignalID becomes the transition identity as well as the inbound deduplication key.
+	SignalID string
+	// ReceivedAt supplies the durable acceptance time; transport acknowledgement
+	// remains caller-owned.
+	ReceivedAt time.Time
+	// Payload is opaque input copied into the accepted plan; the caller owns its
+	// privacy and interpretation.
+	Payload []byte
 }
 
 // NewSignalAcceptance creates the transition that must commit before an

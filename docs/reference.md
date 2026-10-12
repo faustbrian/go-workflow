@@ -77,7 +77,9 @@ fencing, and traversal-limit categories. Use `errors.As` for
 - `StoreCommitCommitted` means the exact transition is durable.
 - `StoreCommitUnknown` requires `ReconcileTransition` before retrying.
 
-PostgreSQL operations preserve safe underlying causes through wrapping.
+PostgreSQL operations preserve original underlying causes through wrapping.
+Wrapper error text omits driver diagnostics, but unwrapped causes and worker
+hook causes are not automatically redacted.
 `postgres.ErrCorruptStore` reports durable data that cannot satisfy the public
 model. Error strings are diagnostic only and must not be parsed. Payloads,
 credentials, tenant data, and external handler details must be redacted before

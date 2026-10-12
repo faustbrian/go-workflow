@@ -20,6 +20,7 @@ const (
 // Config selects the caller-owned PostgreSQL schema. Its zero value uses
 // "workflow".
 type Config struct {
+	// Schema is an existing lowercase ASCII PostgreSQL identifier; empty selects workflow.
 	Schema string
 }
 
@@ -113,7 +114,8 @@ type querySet struct {
 }
 
 // Store persists workflow transitions, history, and due work in PostgreSQL.
-// It starts no goroutines and does not own the supplied pool.
+// Construct it with New; its zero value is uninitialized. It starts no
+// goroutines and does not own the supplied pool.
 type Store struct {
 	database database
 	queries  querySet
@@ -528,9 +530,12 @@ func (store *Store) History(ctx context.Context, query workflow.HistoryQuery) (w
 	return page, nil
 }
 
-// Claim atomically leases a stable bounded page of due work. Concurrent
-// claimers skip locked records; every successful claim increments its fencing
-// token and durable attempt count.
+// Claim atomically leases bounded due or expired work and increments claim
+// attempts and tokens. SQL ranks candidates per tenant and skips locked rows;
+// this is not starvation-free global scheduling or tenant authorization. All
+// time comparisons use request.Now, not a database clock. A query, scan or
+// transport error can leave claims durable but unobserved; let their leases
+// expire instead of assuming absence of admission.
 func (store *Store) Claim(ctx context.Context, request workflow.WorkClaimRequest) ([]workflow.WorkLease, error) {
 	if store == nil || store.database == nil || ctx == nil || !request.Valid() {
 		return nil, workflow.ErrInvalidStoreRequest
@@ -560,8 +565,10 @@ func (store *Store) Claim(ctx context.Context, request workflow.WorkClaimRequest
 	return leases, nil
 }
 
-// Renew extends one live lease without changing its fencing token. Missing,
-// expired, released, or differently owned records are stale.
+// Renew sets expiry to Now plus ExtendBy, clamped to the work deadline, without
+// changing the fence. This can shorten a lease; it is not a maximum with the old
+// expiry. Missing, expired or differently owned records are stale. Supplied Now
+// is trusted caller time, and receipt errors do not prove the mutation absent.
 func (store *Store) Renew(ctx context.Context, renewal workflow.WorkLeaseRenewal) (workflow.WorkLease, error) {
 	if store == nil || store.database == nil || ctx == nil || !renewal.Valid() {
 		return workflow.WorkLease{}, workflow.ErrInvalidStoreRequest
@@ -584,8 +591,10 @@ func (store *Store) Renew(ctx context.Context, renewal workflow.WorkLeaseRenewal
 	return lease, nil
 }
 
-// Complete records successful work only while the supplied ownership fence is
-// live. It never accepts stale-owner progression.
+// Complete marks work complete only when state, owner, token and supplied
+// CompletedAt pass the live-fence comparison. It does not compare a database wall
+// clock or fence an external effect. A transaction receipt error may follow a
+// committed mutation; nil and ErrStaleWorkLease have distinct meanings.
 func (store *Store) Complete(ctx context.Context, completion workflow.WorkCompletion) error {
 	if store == nil || store.database == nil || ctx == nil || !completion.Valid() {
 		return workflow.ErrInvalidStoreRequest
@@ -1007,6 +1016,9 @@ func notCommitted(cause error) error {
 	return workflow.NewStoreCommitError(workflow.StoreCommitNotCommitted, cause)
 }
 
+// Cleanup detaches cancellation while retaining values and bounds cooperative
+// rollback to five seconds. The original operation error remains authoritative;
+// a rollback error is not proof that an attempted commit did not persist.
 func rollback(tx transaction, ctx context.Context) {
 	rollbackContext, cancel := context.WithTimeout(context.WithoutCancel(ctx), rollbackTimeout)
 	defer cancel()
@@ -1021,10 +1033,13 @@ type operationError struct {
 	cause     error
 }
 
+// Error omits driver diagnostic text; the wrapper is not a general redactor.
 func (operationError *operationError) Error() string {
 	return "workflow/postgres: " + operationError.operation + " failed"
 }
 
+// Unwrap exposes the original driver/corruption cause for programmatic handling;
+// callers own redaction when exporting it.
 func (operationError *operationError) Unwrap() error { return operationError.cause }
 
 func newOperationError(operation string, cause error) error {

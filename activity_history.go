@@ -54,7 +54,8 @@ func (progress ActivityProgress) DueAt() time.Time { return progress.dueAt }
 // Input returns an owned copy of the durably scheduled activity input.
 func (progress ActivityProgress) Input() []byte { return cloneBytes(progress.input) }
 
-// Result returns an owned copy of result or safe failure details.
+// Result returns an owned copy of opaque result or failure details; callers
+// must redact them before export.
 func (progress ActivityProgress) Result() []byte { return cloneBytes(progress.result) }
 
 // Code returns the latest known-failure or unknown-outcome code.

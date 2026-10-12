@@ -22,19 +22,35 @@ var (
 
 // ActivityRequestSpec supplies bounded persisted activity-attempt metadata.
 type ActivityRequestSpec struct {
-	InstanceID     string
-	Definition     DefinitionReference
-	StepName       string
-	Attempt        uint32
-	MaxAttempts    uint32
+	// InstanceID identifies the durable instance; syntax validation does not authorize access.
+	InstanceID string
+	// Definition is the exact parent behavior pin supplied to the handler.
+	Definition DefinitionReference
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// Attempt is the one-based semantic attempt, distinct from durable lease redelivery.
+	Attempt uint32
+	// MaxAttempts bounds semantic attempts, including the first.
+	MaxAttempts uint32
+	// IdempotencyKey identifies this semantic external attempt, not the lease claim;
+	// the effect owner must honor it.
 	IdempotencyKey string
-	StartedAt      time.Time
-	Deadline       time.Time
-	Input          []byte
-	InputLimit     uint32
-	ResultLimit    uint32
-	TenantID       string
-	CorrelationID  string
+	// StartedAt supplies the persisted attempt start used to derive its deadline.
+	StartedAt time.Time
+	// Deadline is the persisted attempt deadline used for the callback context;
+	// it follows StartedAt and cannot forcibly stop external code.
+	Deadline time.Time
+	// Input is opaque application data copied into accepted immutable values; no
+	// redaction or encryption is applied.
+	Input []byte
+	// InputLimit is a positive byte allowance no greater than MaxPayloadBytes.
+	InputLimit uint32
+	// ResultLimit is a positive outcome byte allowance no greater than MaxPayloadBytes.
+	ResultLimit uint32
+	// TenantID is optional bounded routing metadata, not an authentication or isolation claim.
+	TenantID string
+	// CorrelationID is optional bounded correlation data, not an unbounded metric label.
+	CorrelationID string
 }
 
 // ActivityRequest is immutable attempt input. Its exact idempotency key is
@@ -143,10 +159,15 @@ const (
 
 // ActivityOutcomeSpec supplies one explicit bounded activity result.
 type ActivityOutcomeSpec struct {
-	Kind      ActivityOutcomeKind
-	Code      string
+	// Kind distinguishes known success, known failure and uncertain external completion.
+	Kind ActivityOutcomeKind
+	// Code is empty on success and a bounded stable code on failure or unknown outcome.
+	Code string
+	// Retryable permits policy retry only for a known failure, never an unknown outcome.
 	Retryable bool
-	Data      []byte
+	// Data is bounded opaque result or diagnostic data; callers must redact it
+	// before persistence or export.
+	Data []byte
 }
 
 // ActivityOutcome is one immutable explicit external-operation classification.
@@ -200,8 +221,9 @@ func (outcome ActivityOutcome) valid() bool {
 }
 
 // ActivityHandler performs one explicitly bounded external activity attempt.
-// It must return ActivityUnknown when cancellation, timeout, or transport loss
-// leaves external commitment uncertain.
+// It must honor cancellation, stop owned goroutines before returning, deduplicate
+// the supplied key and report unknown when effects may have committed. Registries
+// borrow the callback; captured mutable state must support concurrent invocations.
 type ActivityHandler func(context.Context, ActivityRequest) ActivityOutcome
 
 // Activity is one explicit named handler without reflection or global
@@ -222,10 +244,11 @@ func NewActivity(name string, handler ActivityHandler) (Activity, error) {
 // Name returns the stable explicit activity name.
 func (activity Activity) Name() string { return activity.name }
 
-// Execute derives the persisted deadline, checks cancellation before external
-// work, invokes the handler synchronously, and validates its bounded outcome.
-// It does not recover panics or claim that context cancellation stopped an
-// arbitrary external operation.
+// Execute validates the request and cancellation before invoking the handler
+// inline with the persisted deadline. It validates the returned classification
+// and result size but does not force a blocked handler to stop, recover panics or
+// recheck cancellation after a valid result. Processor wrappers separately convert
+// handler panics and execution errors to unknown outcomes.
 func (activity Activity) Execute(ctx context.Context, request ActivityRequest) (ActivityOutcome, error) {
 	if activity.handler == nil {
 		return ActivityOutcome{}, ErrInvalidActivity

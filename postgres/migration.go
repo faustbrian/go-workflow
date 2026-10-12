@@ -1,4 +1,20 @@
-// Package postgres provides durable PostgreSQL workflow persistence.
+// Package postgres provides durable PostgreSQL workflow persistence using pgx.
+//
+// Store borrows a caller-owned pool and starts no goroutines. New constructs
+// queries without connecting or applying DDL; callers create the schema, apply
+// SchemaMigrationsFor in order, supervise workers and close the pool after joins.
+// Migration Down statements destroy retained state and are never run implicitly.
+//
+// Commit writes history, transition identity and due work in one transaction;
+// Stage uses the caller's transaction without committing or rolling it back.
+// A staged nil result is not durability confirmation. Commit transport errors
+// are conservatively unknown and require exact-identity reconciliation.
+//
+// Work mutations compare owner, token and expiry using supplied decision times.
+// They do not fence external effects or authenticate tenant metadata. PostgreSQL
+// signed integer and timestamp representations impose adapter-specific limits.
+// Error text omits driver diagnostics, but wrapped causes remain accessible;
+// callers own access control, schema integrity, backup, retention and redaction.
 package postgres
 
 import (
@@ -11,12 +27,18 @@ import (
 
 var schemaPattern = regexp.MustCompile(`^[a-z_][a-z0-9_]{0,62}$`)
 
-// Migration is one immutable versioned PostgreSQL schema transition.
+// Migration supplies versioned PostgreSQL DDL in a caller-owned mutable record.
+// Factory results do not apply migrations, enforce transaction policy or make
+// destructive Down statements safe for retained data.
 type Migration struct {
+	// Version orders caller-applied schema changes; it is not the Go module major.
 	Version uint
-	Name    string
-	Up      string
-	Down    string
+	// Name identifies this migration in application bookkeeping.
+	Name string
+	// Up contains schema-qualified DDL to execute explicitly against an existing schema.
+	Up string
+	// Down contains destructive reverse DDL; callers must assess data loss before applying it.
+	Down string
 }
 
 // SchemaMigration returns the default workflow-schema migration.
@@ -25,13 +47,13 @@ func SchemaMigration() Migration {
 	return migration
 }
 
-// SchemaMigrations returns every immutable default-schema migration in order.
+// SchemaMigrations returns every versioned default-schema migration in order.
 func SchemaMigrations() []Migration {
 	migrations, _ := SchemaMigrationsFor("workflow")
 	return migrations
 }
 
-// SchemaMigrationsFor returns every immutable migration for a caller-owned
+// SchemaMigrationsFor returns every versioned migration for a caller-owned
 // schema in application order. Callers roll back in reverse order.
 func SchemaMigrationsFor(schema string) ([]Migration, error) {
 	initial, err := SchemaMigrationFor(schema)

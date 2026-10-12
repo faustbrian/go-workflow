@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	// MaxWorkerConcurrency bounds goroutines owned by one worker.
+	// MaxWorkerConcurrency bounds active Run handlers, not total goroutines.
 	MaxWorkerConcurrency uint32 = 1_000
 	// MaxWorkerPollInterval bounds idle and recoverable-error polling.
 	MaxWorkerPollInterval = time.Minute
@@ -36,8 +36,12 @@ const (
 
 // WorkDecisionSpec supplies one explicit processor disposition.
 type WorkDecisionSpec struct {
-	Kind    WorkDecisionKind
-	Code    string
+	// Kind selects complete, retry or dead-letter finalization.
+	Kind WorkDecisionKind
+	// Code is required only for retry or dead letter.
+	Code string
+	// RetryAt is nonzero only for retry; finalization further requires it to follow
+	// the failure observation.
 	RetryAt time.Time
 }
 
@@ -87,18 +91,24 @@ func (decision WorkDecision) Valid() bool {
 // transition before returning WorkComplete. An error leaves the lease for
 // fenced recovery; it must not hide an unknown external side effect.
 type WorkProcessor interface {
+	// Process returns only after its work and owned goroutines stop; an error leaves
+	// the lease for recovery.
 	Process(context.Context, WorkLease) (WorkDecision, error)
 }
 
 // ClockTimer is one caller-owned deterministic timer.
 type ClockTimer interface {
+	// C supplies the firing channel, which callers select alongside cancellation.
 	C() <-chan time.Time
+	// Stop releases this timer; its result reports whether it was stopped before firing.
 	Stop() bool
 }
 
 // Clock supplies deterministic persisted decision and admission time.
 type Clock interface {
+	// Now supplies trusted decision time; implementations must support concurrent calls.
 	Now() time.Time
+	// NewTimer creates a timer owned and stopped by its caller, without blocking construction.
 	NewTimer(time.Duration) ClockTimer
 }
 
@@ -121,17 +131,35 @@ func (timer systemTimer) Stop() bool          { return timer.timer.Stop() }
 
 // WorkerConfig supplies explicit bounded worker ownership and timing policy.
 type WorkerConfig struct {
-	Store           WorkStore
-	Processor       WorkProcessor
-	Clock           Clock
-	Owner           string
-	MaxConcurrent   uint32
-	ClaimLimit      uint32
-	LeaseDuration   time.Duration
-	RenewEvery      time.Duration
-	PollInterval    time.Duration
+	// Store is borrowed for concurrent claims, renewals and finalization; the caller
+	// retains its lifetime.
+	Store WorkStore
+	// Processor is borrowed and must cooperate with context cancellation and join
+	// its own goroutines.
+	Processor WorkProcessor
+	// Clock is borrowed and must be prompt, concurrency-safe and non-panicking.
+	Clock Clock
+	// Owner is the bounded lease-owner identity compared by store mutations.
+	Owner string
+	// MaxConcurrent bounds active Run handlers from 1 through MaxWorkerConcurrency,
+	// not all goroutines or direct Handle calls.
+	MaxConcurrent uint32
+	// ClaimLimit bounds one claim from 1 through MaxWorkClaimItems; Run also clamps
+	// it to free capacity.
+	ClaimLimit uint32
+	// LeaseDuration is positive and at most MaxWorkLeaseDuration.
+	LeaseDuration time.Duration
+	// RenewEvery is positive and less than LeaseDuration.
+	RenewEvery time.Duration
+	// PollInterval bounds idle and recoverable-error polling; it is positive and at
+	// most MaxWorkerPollInterval.
+	PollInterval time.Duration
+	// FinalizeTimeout bounds the detached cooperative store context, not processor
+	// joins, hooks or total shutdown.
 	FinalizeTimeout time.Duration
-	Hooks           WorkerHooks
+	// Hooks is optional and borrowed; calls are synchronous and may be concurrent,
+	// with no panic recovery.
+	Hooks WorkerHooks
 }
 
 // WorkerEventKind classifies bounded worker lifecycle hooks.
@@ -196,11 +224,14 @@ func (event WorkerEvent) Cause() error { return event.cause }
 // concurrently from the bounded worker handlers. Implementations must provide
 // their own synchronization, return promptly, and must not panic.
 type WorkerHooks interface {
+	// OnWorkerEvent runs inline without recovery; synchronize state and redact Cause
+	// and identities before export.
 	OnWorkerEvent(WorkerEvent)
 }
 
-// Worker owns bounded claim, processing, renewal, and graceful shutdown
-// goroutines. Process supervision remains the caller's responsibility.
+// Worker owns claim, processing, renewal and cooperative shutdown goroutines.
+// Construct it with NewWorker; its zero value is uninitialized. Process
+// supervision and borrowed collaborator lifetime remain caller responsibilities.
 type Worker struct{ config WorkerConfig }
 
 // NewWorker validates explicit dependencies and resource limits.
@@ -218,10 +249,14 @@ func NewWorker(config WorkerConfig) (*Worker, error) {
 	return &Worker{config: config}, nil
 }
 
-// Run claims work immediately, owns at most MaxConcurrent handlers, and stops
-// claiming on cancellation. It waits for every processor to honor cancellation
-// and exit before returning. Recoverable store and processor failures leave
-// fenced leases for expiry recovery and do not stop the process loop.
+// Run claims work immediately and admits at most MaxConcurrent handlers.
+// Use one active Run call per constructed worker. Cancellation stops admission,
+// cancels processors and joins them; ordinary cancellation returns nil, while
+// invalid claim construction or oversized adapter output returns ErrInvalidWorker.
+// Recoverable store/processor errors are observed and leave leases for recovery.
+// Each handler owns an additional processor goroutine; borrowed callbacks may
+// own more. Blocking stores, clocks, hooks or processors can delay shutdown
+// indefinitely, and Run does not recover their panics.
 func (worker *Worker) Run(ctx context.Context) error {
 	if worker == nil || ctx == nil {
 		return ErrInvalidWorker
@@ -316,9 +351,13 @@ func (worker *Worker) observeLease(kind WorkerEventKind, lease WorkLease, cause 
 	})
 }
 
-// Handle processes one valid current lease, renews it on a bounded cadence,
-// and applies its explicit fenced disposition. It is exposed for embedding in
-// caller-owned admission loops.
+// Handle processes and renews one validated lease for the configured owner.
+// It is exposed for caller-owned admission loops and does not enforce Run concurrency
+// limits. Validation cannot prove that the supplied fence is still current.
+// Cancellation or renewal failure cancels and joins the processor before return.
+// A successful decision received after cancellation may still finalize through a
+// context retaining values but detached from cancellation and bounded by
+// FinalizeTimeout. That bound does not limit processor joins or synchronous hooks.
 func (worker *Worker) Handle(ctx context.Context, lease WorkLease) error {
 	if worker == nil || ctx == nil || !lease.Valid() || lease.Owner() != worker.config.Owner {
 		return ErrInvalidWorker
@@ -382,6 +421,8 @@ func (worker *Worker) Handle(ctx context.Context, lease WorkLease) error {
 	}
 }
 
+// Finalization protects a completed durable decision from caller cancellation;
+// the current store fence still decides whether this owner may acknowledge it.
 func (worker *Worker) finalize(ctx context.Context, lease WorkLease, decision WorkDecision) error {
 	finalizeContext, cancel := context.WithTimeout(context.WithoutCancel(ctx), worker.config.FinalizeTimeout)
 	defer cancel()
@@ -440,6 +481,8 @@ func fairLeaseOrder(leases []WorkLease) []WorkLease {
 		groups[tenant] = append(groups[tenant], lease)
 		maximumGroupSize = max(maximumGroupSize, len(groups[tenant]))
 	}
+	// A zero capacity forces an independent result array; tenant interleaving
+	// must not rewrite the adapter-owned input backing array.
 	result := leases[:0:0]
 	for index := range maximumGroupSize {
 		for _, tenant := range order {

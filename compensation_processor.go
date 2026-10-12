@@ -19,16 +19,27 @@ var (
 // execution dependencies. Compensations is an explicit activity registry
 // resolved from each immutable CompensationSpec target.
 type CompensationWorkProcessorConfig struct {
-	Store            ActivityExecutionStore
-	Definitions      *Registry
-	Compensations    *ActivityRegistry
-	Clock            Clock
-	PageSize         uint32
+	// Store is borrowed for authoritative history, atomic transitions and exact reconciliation.
+	Store ActivityExecutionStore
+	// Definitions is the borrowed immutable registry retaining every referenced behavior version.
+	Definitions *Registry
+	// Compensations is the borrowed registry of independently idempotent compensating handlers.
+	Compensations *ActivityRegistry
+	// Clock is borrowed; decision time must be trusted, prompt and concurrency-safe.
+	Clock Clock
+	// PageSize bounds events per store request, from 1 through MaxHistoryPageEvents.
+	PageSize uint32
+	// MaxHistoryEvents bounds replay traversal, from 1 through MaxInspectionHistoryEvents.
 	MaxHistoryEvents uint32
 }
 
 // CompensationWorkProcessor executes leased compensating side effects. It
 // never translates a failed or unknown compensation into successful rollback.
+// Use NewCompensationWorkProcessor; the zero value is uninitialized.
+// Construction borrows collaborators and starts no worker. Process is synchronous
+// and leaves admission, lease renewal and joining to Worker or the caller. Its
+// handler wrapper classifies panics and uncertain execution as unknown; it does
+// not contain store/clock panics or force a noncooperating callback to return.
 type CompensationWorkProcessor struct {
 	config CompensationWorkProcessorConfig
 }

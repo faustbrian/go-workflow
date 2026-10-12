@@ -143,19 +143,36 @@ const (
 
 // HistoryEventSpec supplies one immutable durable history record.
 type HistoryEventSpec struct {
-	Sequence       uint64
-	InstanceID     string
-	Kind           EventKind
-	OccurredAt     time.Time
-	Definition     DefinitionReference
-	SuccessorID    string
-	StepName       string
-	Attempt        uint32
+	// Sequence is the positive instance-history position; replay additionally
+	// requires contiguous order.
+	Sequence uint64
+	// InstanceID identifies the durable instance; syntax validation does not authorize access.
+	InstanceID string
+	// Kind selects required and forbidden event fields.
+	Kind EventKind
+	// OccurredAt supplies the persisted decision time; constructors remove monotonic
+	// clock data and use UTC.
+	OccurredAt time.Time
+	// Definition is required only for start, migration, continue-as-new and child scheduling.
+	Definition DefinitionReference
+	// SuccessorID identifies the continuation or child, and must be empty on other events.
+	SuccessorID string
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// Attempt selects the positive activity, child-start or compensation attempt where required.
+	Attempt uint32
+	// IdempotencyKey records an attempt, signal or operator-command identity where required.
 	IdempotencyKey string
-	DueAt          time.Time
-	Code           string
-	Retryable      bool
-	Data           []byte
+	// DueAt is the attempt deadline or retry/timer due time where required; other
+	// events require zero.
+	DueAt time.Time
+	// Code is a bounded stable classification, not automatically redacted application data.
+	Code string
+	// Retryable permits policy retry only for a known failure, never an unknown outcome.
+	Retryable bool
+	// Data is bounded opaque persisted data copied after validation; event kind and
+	// replay determine its meaning.
+	Data []byte
 }
 
 // HistoryEvent is one validated immutable persisted decision.
@@ -237,17 +254,19 @@ func (event HistoryEvent) Kind() EventKind { return event.kind }
 // OccurredAt returns canonical UTC persisted decision time.
 func (event HistoryEvent) OccurredAt() time.Time { return event.occurredAt }
 
-// Definition returns the target definition for start, migration, or
-// continue-as-new decisions.
+// Definition returns the target definition for start, migration, continuation
+// or child-scheduling decisions.
 func (event HistoryEvent) Definition() DefinitionReference { return event.definition }
 
-// SuccessorID returns the explicit continue-as-new successor identity.
+// SuccessorID returns the continuation or child identity where the event kind
+// carries one.
 func (event HistoryEvent) SuccessorID() string { return event.successorID }
 
 // StepName returns the definition step selected by a step event.
 func (event HistoryEvent) StepName() string { return event.stepName }
 
-// Attempt returns the one-based activity attempt selected by an attempt event.
+// Attempt returns the one-based activity, child-start or compensation attempt
+// selected by an attempt event.
 func (event HistoryEvent) Attempt() uint32 { return event.attempt }
 
 // IdempotencyKey returns the persisted external-attempt or signal identity.
@@ -420,8 +439,9 @@ func (instance Instance) OperatorActions() []OperatorActionRecord {
 	return append([]OperatorActionRecord(nil), instance.operatorActions...)
 }
 
-// SnapshotDigest returns a deterministic digest of reconstructed persisted
-// state for diagnostics and replay comparison.
+// SnapshotDigest returns lowercase SHA-256 of the owned Go JSON replay snapshot,
+// using stable progress order for diagnostics. It is not a signature, encrypted
+// state or an external canonical-JSON equivalence guarantee.
 func (instance Instance) SnapshotDigest() string {
 	encoded, _ := json.Marshal(struct {
 		ID                    string
@@ -677,6 +697,8 @@ func terminalStatus(status InstanceStatus) bool {
 		status == StatusContinuedAsNew
 }
 
+// Persisted comparisons and digests must not depend on process-local monotonic
+// clock readings or equivalent instants represented in different locations.
 func canonicalTime(value time.Time) time.Time {
 	return value.Round(0).UTC()
 }

@@ -1,4 +1,26 @@
 // Package workflow provides explicit durable workflow and saga primitives.
+//
+// Definitions pin names, application versions and SHA-256 fingerprints. Replay
+// reconstructs validated history without calling handlers, clocks or migration
+// callbacks. Plans returned by constructors are not durable until a store commits
+// them; the store owns optimistic sequencing and exact-content idempotency.
+//
+// Activity, child and compensation processors persist attempt admission before
+// external calls. Redelivered running attempts become unknown rather than being
+// silently repeated. Business owners must deduplicate external effects and
+// reconcile uncertainty; durable work is not exactly-once external execution.
+//
+// Accepted immutable values own mutable data and expose copying accessors. Registries,
+// workers and processors borrow stores, callbacks, clocks and hooks, whose
+// concurrency safety and cancellation cooperation remain caller obligations.
+// A worker joins processors before returning and cannot forcibly stop trusted
+// code. Applications own supervision, transport acknowledgements, authorization,
+// retention, encryption and redaction; tenant identifiers are only metadata.
+// Nil-interface checks do not detect typed-nil collaborator implementations;
+// callers must supply valid concrete dependencies.
+//
+// See the repository architecture, operations and API reference for transaction
+// composition, recovery and version-matched PostgreSQL integration.
 package workflow
 
 import (
@@ -70,19 +92,26 @@ const (
 
 // RetryPolicy is a bounded retry contract. Its zero value is invalid.
 type RetryPolicy struct {
-	MaxAttempts  uint32
+	// MaxAttempts bounds semantic attempts, including the first.
+	MaxAttempts uint32
+	// InitialDelay is the positive first retry delay; later delays double up to MaxDelay.
 	InitialDelay time.Duration
-	MaxDelay     time.Duration
+	// MaxDelay caps retry backoff and must be at least InitialDelay.
+	MaxDelay time.Duration
 }
 
 // CompensationSpec defines an independently retryable compensating activity.
 // A failed compensation remains a failed compensation; it is never translated
 // into a successful rollback.
 type CompensationSpec struct {
-	Target      string
-	Timeout     time.Duration
+	// Target names the explicitly registered compensating activity.
+	Target string
+	// Timeout is the positive duration of each compensation attempt.
+	Timeout time.Duration
+	// ResultLimit is a positive outcome byte allowance no greater than MaxPayloadBytes.
 	ResultLimit uint32
-	Retry       RetryPolicy
+	// Retry is independent of the forward activity policy.
+	Retry RetryPolicy
 }
 
 // StepSpec is definition input. NewDefinition validates and deep-copies it.
@@ -90,26 +119,50 @@ type CompensationSpec struct {
 // selected by Kind. ChildDefinition is required only for StepChild and pins
 // the exact child behavior fingerprint.
 type StepSpec struct {
-	Name            string
-	Kind            StepKind
-	Target          string
+	// Name is the unique bounded ASCII step identity within this definition.
+	Name string
+	// Kind selects which step-specific constraints apply.
+	Kind StepKind
+	// Target names the activity, signal or approval target; child steps require
+	// it to match ChildDefinition.Name().
+	Target string
+	// ChildDefinition pins the exact child name, version and fingerprint; it is
+	// invalid on other kinds.
 	ChildDefinition DefinitionReference
-	Branches        []string
-	Timeout         time.Duration
-	InputLimit      uint32
-	ResultLimit     uint32
-	Retry           RetryPolicy
-	FanOutLimit     uint32
-	Compensation    *CompensationSpec
+	// Branches is an ordered set of distinct step references for parallel, join or race controls.
+	Branches []string
+	// Timeout is positive for activity, child, timer, signal and approval kinds;
+	// waits do not themselves create a supervisor.
+	Timeout time.Duration
+	// InputLimit is positive and at most MaxPayloadBytes for activity, child,
+	// signal and approval kinds; other kinds do not validate this field.
+	InputLimit uint32
+	// ResultLimit is positive and at most MaxPayloadBytes for activity and child
+	// kinds; other kinds do not validate this field.
+	ResultLimit uint32
+	// Retry supplies validated activity or child semantic-attempt policy.
+	Retry RetryPolicy
+	// FanOutLimit bounds this control step from 1 through MaxFanOut.
+	FanOutLimit uint32
+	// Compensation optionally declares an activity compensation; it does not
+	// automatically schedule rollback.
+	Compensation *CompensationSpec
 }
 
 // DefinitionSpec supplies one stable immutable workflow definition version.
 type DefinitionSpec struct {
-	Name       string
-	Version    string
-	Mode       ExecutionMode
+	// Name is the bounded ASCII application definition identity.
+	Name string
+	// Version is the caller-assigned immutable behavior version, not the Go module version.
+	Version string
+	// Mode selects explicit orchestration or choreography.
+	Mode ExecutionMode
+	// Deprecated marks deployment policy metadata; constructors and replay do not
+	// refuse new starts.
 	Deprecated bool
-	Steps      []StepSpec
+	// Steps supplies ordered behavior; NewDefinition owns copies of steps, branches
+	// and compensation specs.
+	Steps []StepSpec
 }
 
 // Definition is one validated immutable workflow behavior version.
@@ -120,6 +173,10 @@ type Definition struct {
 }
 
 // NewDefinition validates, owns, and fingerprints one immutable definition.
+// It copies steps and nested specs before validation; MaxFanOut is an accepted
+// value bound, not a bound on allocation before rejection. Fingerprints bind the
+// owned Go JSON representation, including order and metadata, not semantic
+// equivalence, authentication or an external canonical-JSON standard.
 func NewDefinition(spec DefinitionSpec) (Definition, error) {
 	owned := cloneDefinitionSpec(spec)
 	if err := validateDefinition(owned); err != nil {

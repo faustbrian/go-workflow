@@ -20,29 +20,41 @@ var (
 
 // HistoryReader is the narrow read contract consumed by inspection and export.
 type HistoryReader interface {
+	// History returns a validated ordered page after the exclusive cursor without
+	// mutating durable state.
 	History(context.Context, HistoryQuery) (HistoryPage, error)
 }
 
 // InstanceInspectionSpec supplies one bounded deterministic replay request.
 type InstanceInspectionSpec struct {
+	// InstanceID identifies the durable instance; syntax validation does not authorize access.
 	InstanceID string
-	PageSize   uint32
-	MaxEvents  uint32
+	// PageSize bounds events per store request, from 1 through MaxHistoryPageEvents.
+	PageSize uint32
+	// MaxEvents bounds the whole traversal, from 1 through MaxInspectionHistoryEvents.
+	MaxEvents uint32
 }
 
 // HistoryExportSpec supplies one bounded streaming history-export request.
 type HistoryExportSpec struct {
+	// InstanceID identifies the durable instance; syntax validation does not authorize access.
 	InstanceID string
-	PageSize   uint32
-	MaxEvents  uint32
+	// PageSize bounds events per store request, from 1 through MaxHistoryPageEvents.
+	PageSize uint32
+	// MaxEvents bounds the whole traversal, from 1 through MaxInspectionHistoryEvents.
+	MaxEvents uint32
 }
 
-// HistoryExportSink consumes one owned stable forward page. Returning an error
-// stops export without acknowledging or mutating durable state.
+// HistoryExportSink consumes one owned forward page inline. It may retain the
+// slice, must cooperate with cancellation and owns redaction and external writes.
+// An error stops traversal after any previously delivered pages; there is no
+// transactional rollback, external acknowledgement or panic recovery.
 type HistoryExportSink func(context.Context, []HistoryEvent) error
 
-// InspectInstance reconstructs one instance from bounded stable history pages.
-// Replay decisions depend only on persisted history and the pinned registry.
+// InspectInstance reads bounded forward pages and then replays their accumulated
+// events. It bounds event count, not total payload bytes, and a traversal-limit
+// error yields no partial Instance. Separate reads do not establish a store-wide
+// snapshot; registry resolution and replay use only persisted decisions.
 func InspectInstance(
 	ctx context.Context,
 	reader HistoryReader,

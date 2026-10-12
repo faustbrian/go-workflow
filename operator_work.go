@@ -9,18 +9,34 @@ import (
 // retry command. The command records audit history and retry due work in one
 // optimistic transition.
 type OperatorActivityRetrySpec struct {
-	CommandID      string
-	WorkID         string
-	Instance       Instance
-	Definition     Definition
-	StepName       string
+	// CommandID is the caller-selected store-wide identity binding audit data and
+	// the complete command.
+	CommandID string
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// IdempotencyKey identifies this semantic external attempt, not the lease claim;
+	// the effect owner must honor it.
 	IdempotencyKey string
-	Actor          string
-	Reason         string
-	OccurredAt     time.Time
-	Deadline       time.Time
-	TenantID       string
-	CorrelationID  string
+	// Actor is a bounded principal identifier already authenticated and authorized by the caller.
+	Actor string
+	// Reason is a bounded stable audit code; it must not contain confidential
+	// free-form diagnostics.
+	Reason string
+	// OccurredAt supplies the persisted decision time; constructors remove monotonic
+	// clock data and use UTC.
+	OccurredAt time.Time
+	// Deadline bounds durable work admission; external code must separately honor cancellation.
+	Deadline time.Time
+	// TenantID is optional bounded routing metadata, not an authentication or isolation claim.
+	TenantID string
+	// CorrelationID is optional bounded correlation data, not an unbounded metric label.
+	CorrelationID string
 }
 
 // NewOperatorActivityRetry atomically records caller-supplied authorization
@@ -47,20 +63,39 @@ func NewOperatorActivityRetry(spec OperatorActivityRetrySpec) (Transition, error
 // OperatorCompensationSpec supplies one caller-authorized audited explicit
 // compensation command.
 type OperatorCompensationSpec struct {
-	CommandID      string
-	WorkID         string
-	Instance       Instance
-	Definition     Definition
-	StepName       string
-	Attempt        uint32
+	// CommandID is the caller-selected store-wide identity binding audit data and
+	// the complete command.
+	CommandID string
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// Attempt must be 1 for first compensation admission.
+	Attempt uint32
+	// IdempotencyKey identifies this semantic external attempt, not the lease claim;
+	// the effect owner must honor it.
 	IdempotencyKey string
-	Actor          string
-	Reason         string
-	OccurredAt     time.Time
-	Deadline       time.Time
-	Input          []byte
-	TenantID       string
-	CorrelationID  string
+	// Actor is a bounded principal identifier already authenticated and authorized by the caller.
+	Actor string
+	// Reason is a bounded stable audit code; it must not contain confidential
+	// free-form diagnostics.
+	Reason string
+	// OccurredAt supplies the persisted decision time; constructors remove monotonic
+	// clock data and use UTC.
+	OccurredAt time.Time
+	// Deadline bounds durable work admission; external code must separately honor cancellation.
+	Deadline time.Time
+	// Input is opaque application data copied into accepted immutable values; no
+	// redaction or encryption is applied.
+	Input []byte
+	// TenantID is optional bounded routing metadata, not an authentication or isolation claim.
+	TenantID string
+	// CorrelationID is optional bounded correlation data, not an unbounded metric label.
+	CorrelationID string
 }
 
 // NewOperatorCompensation atomically records audit data before scheduling the
@@ -89,14 +124,27 @@ func NewOperatorCompensation(spec OperatorCompensationSpec) (Transition, error) 
 // bounded manual reconciliation evidence for one failed or unknown
 // compensation.
 type OperatorCompensationResolutionSpec struct {
-	CommandID  string
-	Instance   Instance
+	// CommandID is the caller-selected store-wide identity binding audit data and
+	// the complete command.
+	CommandID string
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
 	Definition Definition
-	StepName   string
-	Actor      string
-	Reason     string
-	Code       string
-	Evidence   []byte
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// Actor is a bounded principal identifier already authenticated and authorized by the caller.
+	Actor string
+	// Reason is a bounded stable audit code; it must not contain confidential
+	// free-form diagnostics.
+	Reason string
+	// Code is a bounded stable classification, not automatically redacted application data.
+	Code string
+	// Evidence is copied opaque manual-reconciliation data bounded by the
+	// compensation ResultLimit; it is not redacted.
+	Evidence []byte
+	// OccurredAt supplies the persisted decision time; constructors remove monotonic
+	// clock data and use UTC.
 	OccurredAt time.Time
 }
 
@@ -143,14 +191,26 @@ func NewOperatorCompensationResolution(spec OperatorCompensationResolutionSpec) 
 // OperatorApprovalSpec supplies caller-authorized audit identity and bounded
 // approval evidence for one human-approval step.
 type OperatorApprovalSpec struct {
-	CommandID  string
-	Instance   Instance
+	// CommandID is the caller-selected store-wide identity binding audit data and
+	// the complete command.
+	CommandID string
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
 	Definition Definition
-	StepName   string
-	Actor      string
-	Reason     string
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// Actor is a bounded principal identifier already authenticated and authorized by the caller.
+	Actor string
+	// Reason is a bounded stable audit code; it must not contain confidential
+	// free-form diagnostics.
+	Reason string
+	// OccurredAt supplies the persisted decision time; constructors remove monotonic
+	// clock data and use UTC.
 	OccurredAt time.Time
-	Payload    []byte
+	// Payload is opaque input copied into the accepted plan; the caller owns its
+	// privacy and interpretation.
+	Payload []byte
 }
 
 // NewOperatorApproval atomically records audit identity before accepting one

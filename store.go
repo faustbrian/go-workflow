@@ -64,7 +64,8 @@ func (commitError *StoreCommitError) Error() string {
 	}
 }
 
-// Unwrap preserves the cause for errors.Is and errors.As.
+// Unwrap exposes the unredacted cause for errors.Is and errors.As; callers
+// must not assume safe formatting of StoreCommitError makes the cause safe.
 func (commitError *StoreCommitError) Unwrap() error { return commitError.cause }
 
 // CommitOutcome returns the explicit durability classification.
@@ -88,9 +89,12 @@ func StoreCommitOutcomeOf(err error) StoreCommitOutcome {
 
 // HistoryQuerySpec supplies one stable bounded instance-history page request.
 type HistoryQuerySpec struct {
-	InstanceID    string
+	// InstanceID identifies the durable instance; syntax validation does not authorize access.
+	InstanceID string
+	// AfterSequence is an exclusive cursor; zero starts history and max uint64 is invalid.
 	AfterSequence uint64
-	Limit         uint32
+	// Limit bounds this page from 1 through MaxHistoryPageEvents.
+	Limit uint32
 }
 
 // HistoryQuery is an immutable forward page request. AfterSequence is an
@@ -169,6 +173,10 @@ func (page HistoryPage) HasMore() bool { return page.hasMore }
 // enforce ExpectedSequence and Transition.ID idempotency. It must return a
 // StoreCommitError whenever an error follows a possible commit boundary.
 type TransitionStore interface {
+	// Commit atomically enforces the sequence/pin and exact transition fingerprint;
+	// possible commit errors expose durability.
 	Commit(context.Context, Transition) error
+	// History returns validated contiguous forward pages; it need not provide a
+	// cross-page snapshot.
 	History(context.Context, HistoryQuery) (HistoryPage, error)
 }

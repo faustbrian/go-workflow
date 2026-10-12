@@ -42,7 +42,10 @@ type compensationDispatchDocument struct {
 	IdempotencyKey string `json:"idempotency_key"`
 }
 
-// DecodeCompensationDispatch validates bounded durable work metadata.
+// DecodeCompensationDispatch validates byte-bounded durable dispatch metadata without external
+// I/O. It rejects unknown fields and trailing JSON values using encoding/json;
+// that decoder still accepts duplicate keys and case-insensitive field matches.
+// The result carries identities, not proof of authorization or a current lease.
 func DecodeCompensationDispatch(payload []byte) (CompensationDispatch, error) {
 	if len(payload) == 0 {
 		return CompensationDispatch{}, ErrInvalidCompensation
@@ -72,21 +75,38 @@ func DecodeCompensationDispatch(payload []byte) (CompensationDispatch, error) {
 // CompensationScheduleSpec supplies atomic history and durable dispatch for
 // the first attempt of one explicit compensation.
 type CompensationScheduleSpec struct {
-	TransitionID   string
-	WorkID         string
-	Instance       Instance
-	Definition     Definition
-	StepName       string
-	Attempt        uint32
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
+	TransitionID string
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// Attempt must be 1 for first compensation admission.
+	Attempt uint32
+	// IdempotencyKey identifies this semantic external attempt, not the lease claim;
+	// the effect owner must honor it.
 	IdempotencyKey string
-	ScheduledAt    time.Time
-	Deadline       time.Time
-	Input          []byte
-	TenantID       string
-	CorrelationID  string
+	// ScheduledAt supplies the persisted decision time, no earlier than the replayed state.
+	ScheduledAt time.Time
+	// Deadline bounds durable work admission; external code must separately honor cancellation.
+	Deadline time.Time
+	// Input is opaque application data copied into accepted immutable values; no
+	// redaction or encryption is applied.
+	Input []byte
+	// TenantID is optional bounded routing metadata, not an authentication or isolation claim.
+	TenantID string
+	// CorrelationID is optional bounded correlation data, not an unbounded metric label.
+	CorrelationID string
 }
 
-// NewCompensationSchedule atomically schedules compensation history and work.
+// NewCompensationSchedule constructs an atomic history-and-work plan for an
+// explicit successful activity compensation. It neither commits nor executes it;
+// callers select compensation order and commit before admitting external effects.
 func NewCompensationSchedule(spec CompensationScheduleSpec) (Transition, error) {
 	step, ok := definitionActivityStep(spec.Definition, spec.StepName)
 	if !ok {
@@ -153,11 +173,18 @@ func NewCompensationSchedule(spec CompensationScheduleSpec) (Transition, error) 
 // CompensationAttemptStartSpec supplies the persisted decision required before
 // executing one leased compensating side effect.
 type CompensationAttemptStartSpec struct {
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
 	TransitionID string
-	Lease        WorkLease
-	Instance     Instance
-	Definition   Definition
-	StartedAt    time.Time
+	// Lease supplies work and claimed ownership metadata; validation does not query
+	// the current store fence.
+	Lease WorkLease
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StartedAt supplies the persisted attempt start used to derive its deadline.
+	StartedAt time.Time
 }
 
 // NewCompensationAttemptStart creates the attempt-start transition that must
@@ -242,13 +269,22 @@ func NewCompensationAttemptStart(spec CompensationAttemptStartSpec) (Transition,
 // CompensationAttemptOutcomeSpec supplies one known or unknown persisted
 // compensation result.
 type CompensationAttemptOutcomeSpec struct {
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
 	TransitionID string
-	Instance     Instance
-	Definition   Definition
-	StepName     string
-	Attempt      uint32
-	OccurredAt   time.Time
-	Outcome      ActivityOutcome
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// Attempt is the one-based semantic attempt, distinct from durable lease redelivery.
+	Attempt uint32
+	// OccurredAt supplies the persisted decision time; constructors remove monotonic
+	// clock data and use UTC.
+	OccurredAt time.Time
+	// Outcome is the validated known or unknown result to persist for this running attempt.
+	Outcome ActivityOutcome
 }
 
 // NewCompensationAttemptOutcome records an explicit bounded compensation
@@ -303,16 +339,28 @@ func NewCompensationAttemptOutcome(spec CompensationAttemptOutcomeSpec) (Transit
 // CompensationRetrySpec supplies one persisted retry decision and the next
 // semantic compensation attempt.
 type CompensationRetrySpec struct {
-	TransitionID   string
-	WorkID         string
-	Instance       Instance
-	Definition     Definition
-	StepName       string
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
+	TransitionID string
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// IdempotencyKey identifies this semantic external attempt, not the lease claim;
+	// the effect owner must honor it.
 	IdempotencyKey string
-	ScheduledAt    time.Time
-	Deadline       time.Time
-	TenantID       string
-	CorrelationID  string
+	// ScheduledAt supplies the persisted decision time, no earlier than the replayed state.
+	ScheduledAt time.Time
+	// Deadline bounds durable work admission; external code must separately honor cancellation.
+	Deadline time.Time
+	// TenantID is optional bounded routing metadata, not an authentication or isolation claim.
+	TenantID string
+	// CorrelationID is optional bounded correlation data, not an unbounded metric label.
+	CorrelationID string
 }
 
 // NewCompensationRetry atomically records independently retryable

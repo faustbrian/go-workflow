@@ -32,28 +32,52 @@ const (
 // OrchestrationDecisionSpec supplies caller-owned identities, bounded data,
 // and deterministic time for one ordered orchestration decision.
 type OrchestrationDecisionSpec struct {
-	TransitionID   string
-	WorkID         string
-	Instance       Instance
-	Definition     Definition
-	DecidedAt      time.Time
-	Deadline       time.Time
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
+	TransitionID string
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Definition supplies the exact registered behavior pinned by the instance.
+	Definition Definition
+	// DecidedAt supplies deterministic decision time; no clock is consulted.
+	DecidedAt time.Time
+	// Deadline bounds durable work admission; external code must separately honor cancellation.
+	Deadline time.Time
+	// IdempotencyKey identifies this semantic external attempt, not the lease claim;
+	// the effect owner must honor it.
 	IdempotencyKey string
-	Input          []byte
-	Result         []byte
-	TenantID       string
-	CorrelationID  string
-	ChildID        string
-	Branches       []OrchestrationBranchSpec
+	// Input is opaque application data copied into accepted immutable values; no
+	// redaction or encryption is applied.
+	Input []byte
+	// Result is opaque application outcome data copied into accepted immutable
+	// values; no redaction is applied.
+	Result []byte
+	// TenantID is optional bounded routing metadata, not an authentication or isolation claim.
+	TenantID string
+	// CorrelationID is optional bounded correlation data, not an unbounded metric label.
+	CorrelationID string
+	// ChildID is the stable child identity that the caller-owned creator must deduplicate.
+	ChildID string
+	// Branches supplies the exact per-branch inputs and identities when admitting a
+	// parallel control.
+	Branches []OrchestrationBranchSpec
 }
 
 // OrchestrationBranchSpec supplies one bounded parallel branch dispatch. The
 // branch name must exactly match its enclosing immutable control step.
 type OrchestrationBranchSpec struct {
-	StepName       string
-	WorkID         string
+	// StepName selects a stable name in the pinned definition.
+	StepName string
+	// WorkID identifies the durable work record; callers must avoid conflicting reuse.
+	WorkID string
+	// IdempotencyKey identifies this semantic external attempt, not the lease claim;
+	// the effect owner must honor it.
 	IdempotencyKey string
-	Input          []byte
+	// Input is opaque application data copied into accepted immutable values; no
+	// redaction or encryption is applied.
+	Input []byte
 }
 
 // OrchestrationDecision is one immutable persisted plan or explicit wait.
@@ -72,9 +96,14 @@ func (decision OrchestrationDecision) StepName() string { return decision.stepNa
 // Transition returns the atomic plan. It is invalid for OrchestrationWaiting.
 func (decision OrchestrationDecision) Transition() Transition { return decision.transition }
 
-// NewOrchestrationDecision deterministically selects the first incomplete
-// ordered step from replayed persisted progress. It does not execute side
-// effects and rejects choreography or unsupported control-flow steps.
+// NewOrchestrationDecision selects the first incomplete ordered step from
+// replayed progress without executing or persisting effects. It rejects
+// choreography and unsupported controls. Known exhausted failures terminate;
+// unknown activity/child outcomes wait for explicit reconciliation. Parallel
+// admission requires all branches absent and fits transition batch bounds.
+// Races choose the earliest persisted signal time, breaking ties by declared
+// branch order; replay then uses the recorded winner, not a new observation.
+// Compensation is explicitly scheduled elsewhere, not automatic on failure.
 func NewOrchestrationDecision(spec OrchestrationDecisionSpec) (OrchestrationDecision, error) {
 	if spec.Definition.Mode() != Orchestration || spec.Definition.Reference() != spec.Instance.definition ||
 		spec.Instance.status != StatusRunning {

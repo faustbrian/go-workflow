@@ -17,16 +17,28 @@ var (
 
 // ChildWorkProcessorConfig supplies explicit bounded child-start dependencies.
 type ChildWorkProcessorConfig struct {
-	Store            ActivityExecutionStore
-	Definitions      *Registry
-	Starter          ChildStarter
-	Clock            Clock
-	PageSize         uint32
+	// Store is borrowed for authoritative history, atomic transitions and exact reconciliation.
+	Store ActivityExecutionStore
+	// Definitions is the borrowed immutable registry retaining every referenced behavior version.
+	Definitions *Registry
+	// Starter is a borrowed idempotent child creator; callers own its concurrency
+	// safety and lifetime.
+	Starter ChildStarter
+	// Clock is borrowed; decision time must be trusted, prompt and concurrency-safe.
+	Clock Clock
+	// PageSize bounds events per store request, from 1 through MaxHistoryPageEvents.
+	PageSize uint32
+	// MaxHistoryEvents bounds replay traversal, from 1 through MaxInspectionHistoryEvents.
 	MaxHistoryEvents uint32
 }
 
 // ChildWorkProcessor starts pinned child instances without claiming exactly
 // once creation. It persists the start boundary before invoking the adapter.
+// Use NewChildWorkProcessor; the zero value is uninitialized.
+// Construction borrows collaborators and starts no worker. Process is synchronous
+// and leaves admission, lease renewal and joining to Worker or the caller. Its
+// handler wrapper classifies panics and uncertain execution as unknown; it does
+// not contain store/clock panics or force a noncooperating callback to return.
 type ChildWorkProcessor struct{ config ChildWorkProcessorConfig }
 
 // NewChildWorkProcessor validates one explicit bounded processor.

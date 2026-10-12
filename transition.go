@@ -45,14 +45,24 @@ const (
 
 // PendingWorkSpec supplies one bounded durable work record.
 type PendingWorkSpec struct {
-	ID            string
-	Kind          WorkKind
-	InstanceID    string
-	Sequence      uint64
-	AvailableAt   time.Time
-	Deadline      time.Time
-	Payload       []byte
-	TenantID      string
+	// ID is a caller-selected store-wide durable work identity.
+	ID string
+	// Kind selects activity, timer, child, publication, reconciliation or compensation work.
+	Kind WorkKind
+	// InstanceID identifies the durable instance; syntax validation does not authorize access.
+	InstanceID string
+	// Sequence ties this record to a positive durable event position.
+	Sequence uint64
+	// AvailableAt is the first admission time and must precede Deadline.
+	AvailableAt time.Time
+	// Deadline is the last admission instant, not a guarantee that external work stops then.
+	Deadline time.Time
+	// Payload is opaque input copied into the accepted plan; the caller owns its
+	// privacy and interpretation.
+	Payload []byte
+	// TenantID is optional bounded routing metadata, not an authentication or isolation claim.
+	TenantID string
+	// CorrelationID is optional bounded correlation data, not an unbounded metric label.
 	CorrelationID string
 }
 
@@ -121,12 +131,19 @@ func (work PendingWork) valid() bool {
 
 // TransitionSpec supplies one idempotent atomic history-and-work append.
 type TransitionSpec struct {
-	ID               string
-	InstanceID       string
+	// ID is the caller-selected store-wide transition identity for exact complete-content replay.
+	ID string
+	// InstanceID identifies the durable instance; syntax validation does not authorize access.
+	InstanceID string
+	// ExpectedSequence is the optimistic history cursor enforced by the committing store.
 	ExpectedSequence uint64
-	Definition       DefinitionReference
-	Events           []HistoryEvent
-	Work             []PendingWork
+	// Definition is the instance pin checked at the optimistic commit boundary.
+	Definition DefinitionReference
+	// Events supplies 1 through MaxTransitionEvents contiguous decisions;
+	// construction does not replay semantic state.
+	Events []HistoryEvent
+	// Work supplies at most MaxTransitionWork due records tied to events in this batch.
+	Work []PendingWork
 }
 
 // Transition is one immutable atomic persistence plan. A store must append all

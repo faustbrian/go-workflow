@@ -190,11 +190,20 @@ func operatorActionSnapshots(records []OperatorActionRecord) []operatorActionSna
 // Authorization remains the caller's policy boundary and is not inferred by
 // this package.
 type OperatorLifecycleCommandSpec struct {
-	CommandID  string
-	Instance   Instance
-	Action     OperatorAction
-	Actor      string
-	Reason     string
+	// CommandID is the caller-selected store-wide identity binding audit data and
+	// the complete command.
+	CommandID string
+	// Instance is the replayed state whose sequence and pinned definition this plan must match.
+	Instance Instance
+	// Action selects the explicit caller-authorized operator intervention.
+	Action OperatorAction
+	// Actor is a bounded principal identifier already authenticated and authorized by the caller.
+	Actor string
+	// Reason is a bounded stable audit code; it must not contain confidential
+	// free-form diagnostics.
+	Reason string
+	// OccurredAt supplies the persisted decision time; constructors remove monotonic
+	// clock data and use UTC.
 	OccurredAt time.Time
 }
 

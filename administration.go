@@ -30,7 +30,9 @@ type InstanceListCursor struct {
 
 // InstanceListCursorSpec supplies a decoded external pagination cursor.
 type InstanceListCursorSpec struct {
-	CreatedAt  time.Time
+	// CreatedAt is the nonzero creation-time key, normalized to UTC.
+	CreatedAt time.Time
+	// InstanceID identifies the durable instance; syntax validation does not authorize access.
 	InstanceID string
 }
 
@@ -61,9 +63,12 @@ func (cursor InstanceListCursor) valid() bool {
 
 // InstanceListQuerySpec supplies one bounded stable list request.
 type InstanceListQuerySpec struct {
+	// Selection chooses active, archived or all records; membership can change between pages.
 	Selection InstanceListSelection
-	After     InstanceListCursor
-	Limit     uint32
+	// After is the exclusive creation-time/identity key; its zero value starts the list.
+	After InstanceListCursor
+	// Limit bounds this page from 1 through MaxInstanceListItems.
+	Limit uint32
 }
 
 // InstanceListQuery is an immutable stable list request.
@@ -99,11 +104,17 @@ func (query InstanceListQuery) Valid() bool {
 
 // InstanceRecordSpec supplies one validated durable adapter record.
 type InstanceRecordSpec struct {
+	// InstanceID identifies the durable instance; syntax validation does not authorize access.
 	InstanceID string
+	// Definition is the exact pin decoded from durable metadata.
 	Definition DefinitionReference
-	Sequence   uint64
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	// Sequence is the positive latest committed position.
+	Sequence uint64
+	// CreatedAt is the nonzero immutable creation key.
+	CreatedAt time.Time
+	// UpdatedAt is no earlier than CreatedAt.
+	UpdatedAt time.Time
+	// ArchivedAt is zero while active and otherwise no earlier than UpdatedAt.
 	ArchivedAt time.Time
 }
 
@@ -217,8 +228,11 @@ func cursorBefore(cursor InstanceListCursor, createdAt time.Time, instanceID str
 
 // TransitionReconciliationSpec supplies one uncertain transition identity.
 type TransitionReconciliationSpec struct {
+	// TransitionID is the caller-selected store-wide identity for exact replay of
+	// this complete plan.
 	TransitionID string
-	Fingerprint  string
+	// Fingerprint is the expected lowercase SHA-256 complete-transition digest.
+	Fingerprint string
 }
 
 // TransitionReconciliation is an immutable transition identity used to
@@ -269,6 +283,10 @@ const (
 
 // AdministrationStore exposes stable list and uncertain-commit reconciliation.
 type AdministrationStore interface {
+	// ListInstances returns bounded ordered metadata; the cursor alone is not a
+	// snapshot or access-control policy.
 	ListInstances(context.Context, InstanceListQuery) (InstanceListPage, error)
+	// ReconcileTransition distinguishes missing, exact committed and conflicting
+	// fingerprints in the same authoritative store.
 	ReconcileTransition(context.Context, TransitionReconciliation) (TransitionReconciliationOutcome, error)
 }
