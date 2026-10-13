@@ -43,7 +43,7 @@ GOWORK=off go test . -run '^$' -fuzz '^FuzzWorkDecisionBoundaries$' -fuzztime=2s
 
 Select the native fuzz target affected by your change. Ordinary tests exercise
 deterministic fuzz seeds and corpus; base-free local checks do not start an
-active fuzz campaign. Install the public `golib` v2.1.3 release declared in
+active fuzz campaign. Install the public `golib` v2.4.0 release declared in
 `.golib.yaml` and verify its checksums for the shared routes:
 
 ```bash
@@ -81,3 +81,12 @@ Follow [repository structure policy](AGENTS.md#repository-structure). New module
 require an explicit purpose, ownership boundary, dependency review, package
 catalog entry, full quality gates, documentation, changelog, license, security
 policy, compatibility plan, and release dry-run.
+
+## Source Documentation
+
+Install the checksum-pinned public verifier declared in `.golib.yaml`.
+`make source-docs-check` validates objective Go comment, marker, link and
+generated-producer structure; `make check`, `make check-full` and `make ci`
+require it before their existing checks. Shared CI runs the same strict
+contract and includes its result in Required. This is structural enforcement,
+not a substitute for source-truth review or behavioral verification.
