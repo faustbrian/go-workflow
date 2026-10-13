@@ -1,5 +1,8 @@
 # V3 source model
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: Operations](operations.md)
+
 V3 retains the v2 admission, defensive-copy, history, replay, and bounded-worker
 contracts described in the [v2 source model](threat-model-v2.md). The nominal
 module migration does not itself create a new security guarantee or alter

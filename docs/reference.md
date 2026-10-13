@@ -1,5 +1,8 @@
 # API and lifecycle reference
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: Operations](operations.md)
+
 ## Construction, defaults, and validation
 
 `NewDefinition` validates names, versions, step shape, limits, deadlines, retry

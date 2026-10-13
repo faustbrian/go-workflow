@@ -1,5 +1,8 @@
 # V2 source model and residual ownership
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: Operations](operations.md)
+
 Model revision 2, dated 2026-10-03, covers the root Workflow and PostgreSQL
 packages on main derived from `e9c20463ee4b44a1b37c85310c6890334af3313d`.
 The nominal v2 migration targets Go 1.27.0 and version 2.0.0. This source model

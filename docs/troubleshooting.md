@@ -1,5 +1,8 @@
 # Troubleshooting and FAQ
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and lifecycle reference](reference.md)
+
 ## A commit returned an error. May I retry?
 
 Inspect `StoreCommitError` with `errors.As`. Retry the same immutable transition

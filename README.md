@@ -1,10 +1,7 @@
 # workflow
 
 [![CI](https://github.com/faustbrian/go-workflow/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/faustbrian/go-workflow/actions/workflows/ci.yml)
-[![CodeQL](https://img.shields.io/badge/CodeQL-required-blue)](https://github.com/faustbrian/go-workflow/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-100%25_required-blue)](CONTRIBUTING.md#verification)
-[![Mutation](https://img.shields.io/badge/mutation-full%2Frelease-blue)](CONTRIBUTING.md#verification)
-[![Documentation](https://img.shields.io/badge/docs-checked_in_CI-blue)](docs/)
+[![Documentation](https://img.shields.io/badge/docs-adoption_and_API-blue)](docs/index.md)
 [![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-workflow/v3.svg)](https://pkg.go.dev/github.com/faustbrian/go-workflow/v3)
 [![Release](https://img.shields.io/github/v/release/faustbrian/go-workflow?sort=semver)](https://github.com/faustbrian/go-workflow/releases)
 [![Go](https://img.shields.io/badge/go-1.27.0-00ADD8?logo=go)](https://go.dev/)
@@ -17,15 +14,25 @@ application still owns business handlers, authorization, transport,
 publication and acknowledgement, process supervision, and external-effect
 idempotency.
 
-This source targets **v3.0.0**, with minimum Go 1.27.0. Published
+The published **v3.0.0** API requires Go 1.27.0. Published
 v1.0.0 declares Go 1.26.6 and remains a distinct source and type identity.
 Use published stable tags from the [release list](https://github.com/faustbrian/go-workflow/releases),
 not `main`, as release identities. See [v3 migration guidance](docs/migration-v3.md).
 
 For ecosystem-wide design and selection guidance, see the versioned
-[Golib ecosystem index](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/README.md)
+[Golib ecosystem index](https://github.com/faustbrian/go-library-tools/blob/v1.8.4/docs/ecosystem/README.md)
 and its
-[Persistence and durability family](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/design-language.md#package-families-and-selection).
+[Persistence and durability family](https://github.com/faustbrian/go-library-tools/blob/v1.8.4/docs/ecosystem/design-language.md#package-families-and-selection).
+
+## Adoption entry points
+
+The root module is `github.com/faustbrian/go-workflow/v3` (stable).
+It requires Go 1.27.0. Pin the published `v3.0.0` root tag
+with `go get github.com/faustbrian/go-workflow/v3@v3.0.0`.
+Root subpackages share this module; they need no separate installation.
+
+Start with the [documentation map](docs/index.md) for package selection,
+examples, operational constraints, and contributor references.
 
 ## Install and packages
 
@@ -33,8 +40,8 @@ and its
 go get github.com/faustbrian/go-workflow/v3@v3.0.0
 ```
 
-Use this command only when v3.0.0 is a published stable release. A source
-revision, example or candidate composition does not prove public availability.
+The `v3.0.0` root tag is published. A source revision, example, or candidate
+composition alone does not establish a release or production deployment.
 
 - `github.com/faustbrian/go-workflow/v3` contains definitions, history, replay,
   transitions, durable work, processors, workers, inspection, and operator

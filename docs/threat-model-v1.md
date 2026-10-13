@@ -1,5 +1,8 @@
 # V1 threat model and residual ownership
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: Operations](operations.md)
+
 ## Source and release scope
 
 Model revision 1, dated 2026-10-03, covers the root `workflow` package and its

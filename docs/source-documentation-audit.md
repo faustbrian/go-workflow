@@ -1,5 +1,8 @@
 # Source documentation audit
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and lifecycle reference](reference.md)
+
 ## Outcome, owner, consumers, named risks and smallest checks
 
 Base 5628c7788a8af8dc12b3e56cded324d99f75db54; freshly verified remote-main detached worktree. Tier A documentation-only.

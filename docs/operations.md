@@ -1,5 +1,8 @@
 # Operations
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and lifecycle reference](reference.md)
+
 ## Deployment
 
 1. Register every definition version needed by running instances before new

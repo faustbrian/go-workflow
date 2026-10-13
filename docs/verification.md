@@ -1,5 +1,8 @@
 # Verification strategy
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and lifecycle reference](reference.md)
+
 Executable evidence is scoped to the workflow module and its PostgreSQL
 package. Passing adjacent repository packages does not prove workflow behavior.
 

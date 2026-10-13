@@ -1,5 +1,8 @@
 # V3 migration
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and lifecycle reference](reference.md)
+
 V3 releases the root and PostgreSQL packages together at
 `github.com/faustbrian/go-workflow/v3`. Use `v3.0.0` only after that stable tag
 is published; a source checkout is not evidence of publication.

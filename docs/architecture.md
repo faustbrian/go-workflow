@@ -1,5 +1,8 @@
 # Architecture and guarantees
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and lifecycle reference](reference.md)
+
 ## Saga model
 
 A saga is a sequence of local durable decisions and external side effects. It

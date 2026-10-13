@@ -1,5 +1,8 @@
 # Documentation
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: Documentation map](index.md)
+
 ## Adopt and select
 
 - [Root README](../README.md): status, installation, package map, selection,
@@ -41,5 +44,5 @@
 - [Security reporting](../SECURITY.md)
 - [License](../LICENSE)
 
-The versioned [Golib ecosystem index](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/README.md)
+The versioned [Golib ecosystem index](https://github.com/faustbrian/go-library-tools/blob/v1.8.4/docs/ecosystem/README.md)
 locates this module in the Persistence and durability family.

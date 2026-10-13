@@ -1,5 +1,8 @@
 # V2 migration
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and lifecycle reference](reference.md)
+
 Main targets `github.com/faustbrian/go-workflow/v2` version 2.0.0 with minimum
 Go 1.27.0. It stays at the repository root; PostgreSQL remains in the same module
 at `github.com/faustbrian/go-workflow/v2/postgres`. Once v2.0.0 is listed as a
