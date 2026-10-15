@@ -64,6 +64,23 @@ modes retain the PostgreSQL and Kafka runtime tests. The optional
 `candidate --compile-only` verifies fixture compilation without starting those
 services; it is not runtime composition or public-consumer evidence.
 
+Operational Assurance additionally selects `selected-public`: Workflow
+`/v2@v2.0.0`, Outbox `/v2@v2.0.0`, its Kafka adapter `/v2@v2.0.0`, and Kafka
+`v1.1.0`. It instantiates the same assertions with those canonical imports,
+uses the checked-in consumer module and checksums, and rejects any replacement
+or MVS change to the four selected releases. It does not upgrade the frozen
+compatibility catalog or replace the existing v3 candidate/public recipe.
+
+Run `bash scripts/check-interoperability.sh selected-public --compile-only`
+for an authenticated public compile without services. The optional hosted
+`selected_public_composition` input runs the full public transaction and
+live-broker recovery tests using digest-pinned PostgreSQL 18.4 and Confluent
+Kafka 7.5.0; a requested failure blocks Required. PostgreSQL
+rollback and commit remain caller-owned, broker timeout remains retryable or
+unknown, and repeated publication retains stable identity without claiming
+exactly-once external effects. Existing compensation, dead-letter and operator
+recovery evidence is separate and is not repeated by this selection.
+
 ## Ordinary and full routes
 
 `GOWORK=off go test ./...` runs untagged tests and deterministic fuzz seeds.

@@ -5,6 +5,13 @@ and releases use Semantic Versioning.
 
 ## [Unreleased]
 
+### Added
+
+- Add a separately selected clean-public Workflow v2, Outbox v2 and Kafka
+  composition campaign while retaining the existing v3/legacy-Outbox recipe.
+  It exercises shared transaction ownership and live broker recovery without
+  introducing production APIs or changing the published compatibility set.
+
 ### Documentation
 
 - Clarify copied values versus borrowed collaborators, explicit compensation

@@ -18,6 +18,11 @@ on:
         required: false
         default: false
         type: boolean
+      selected_public_composition:
+        description: Qualify released Workflow v2, Outbox v2 and Kafka composition
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -144,14 +149,59 @@ jobs:
           done
           exit "${cleanup_status}"
 
+  selected-public-composition:
+    name: Selected public Workflow and Outbox composition
+    if: github.event_name == 'workflow_dispatch' && inputs.selected_public_composition
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    env:
+      GOTOOLCHAIN: local
+      GOMAXPROCS: '2'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: .go-version
+          cache: false
+      - name: Record pre-existing runner images
+        run: docker image ls --quiet --no-trunc | sort -u >"${RUNNER_TEMP}/workflow-selected-initial-images"
+      - name: Prove selected public transaction and broker recovery contracts
+        timeout-minutes: 20
+        run: bash ./scripts/check-interoperability.sh selected-public
+      - name: Remove task-owned runner images
+        if: always()
+        run: |
+          set -euo pipefail
+          initial="${RUNNER_TEMP}/workflow-selected-initial-images"
+          final="${RUNNER_TEMP}/workflow-selected-final-images"
+          owned="${RUNNER_TEMP}/workflow-selected-owned-images"
+          if [[ -f "${initial}" ]]; then
+            docker image ls --quiet --no-trunc | sort -u >"${final}"
+            comm -13 "${initial}" "${final}" >"${owned}"
+            xargs -r docker image rm <"${owned}"
+            rm "${initial}" "${final}" "${owned}"
+          fi
+
   required:
     name: Required
     if: always()
-    needs: ci
+    needs: [ci, selected-public-composition]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Require shared workflow
         env:
           CI_RESULT: ${{ needs.ci.result }}
-        run: test "${CI_RESULT}" = success
+          SELECTED_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.selected_public_composition || false }}
+          SELECTED_RESULT: ${{ needs.selected-public-composition.result }}
+        run: |
+          test "${CI_RESULT}" = success
+          if [ "${SELECTED_REQUESTED}" = true ]; then
+            test "${SELECTED_RESULT}" = success
+          else
+            test "${SELECTED_RESULT}" = skipped
+          fi
