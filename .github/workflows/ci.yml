@@ -168,23 +168,16 @@ jobs:
           go-version-file: .go-version
           cache: false
       - name: Record pre-existing runner images
-        run: docker image ls --quiet --no-trunc | sort -u >"${RUNNER_TEMP}/workflow-selected-initial-images"
+        run: bash ./scripts/capture-interoperability-images.sh
+      - name: Verify delayed-reaper cleanup regression
+        run: bash ./scripts/check-interoperability-cleanup-test.sh
       - name: Prove selected public transaction and broker recovery contracts
         timeout-minutes: 20
         run: bash ./scripts/check-interoperability.sh selected-public
       - name: Remove task-owned runner images
         if: always()
-        run: |
-          set -euo pipefail
-          initial="${RUNNER_TEMP}/workflow-selected-initial-images"
-          final="${RUNNER_TEMP}/workflow-selected-final-images"
-          owned="${RUNNER_TEMP}/workflow-selected-owned-images"
-          if [[ -f "${initial}" ]]; then
-            docker image ls --quiet --no-trunc | sort -u >"${final}"
-            comm -13 "${initial}" "${final}" >"${owned}"
-            xargs -r docker image rm <"${owned}"
-            rm "${initial}" "${final}" "${owned}"
-          fi
+        timeout-minutes: 2
+        run: bash ./scripts/cleanup-interoperability-images.sh
 
   required:
     name: Required
