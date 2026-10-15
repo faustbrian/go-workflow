@@ -75,11 +75,32 @@ Run `bash scripts/check-interoperability.sh selected-public --compile-only`
 for an authenticated public compile without services. The optional hosted
 `selected_public_composition` input runs the full public transaction and
 live-broker recovery tests using digest-pinned PostgreSQL 18.4 and Confluent
-Kafka 7.5.0; a requested failure blocks Required. PostgreSQL
+Kafka 7.5.0; a requested failure blocks Required. The hosted job also pulls
+Ryuk 0.14.0 by digest and verifies the default local alias before Testcontainers
+uses it. An existing mismatched alias, or a pre-existing pinned image without
+that alias, fails closed rather than modifying pre-existing images. This
+accommodates Testcontainers 0.44.0's fixed helper name and local-first pull
+policy without disabling its reaper. PostgreSQL
 rollback and commit remain caller-owned, broker timeout remains retryable or
 unknown, and repeated publication retains stable identity without claiming
 exactly-once external effects. Existing compensation, dead-letter and operator
 recovery evidence is separate and is not repeated by this selection.
+
+The selected-public-only application restore drill snapshots one quiesced
+PostgreSQL database containing business rows, Workflow history/transition
+receipts, and pending Outbox intent. After publishing that intent and a newer
+application commit to separate real Kafka topics, it restores only SQL. Before
+resuming publication or successful acknowledgement, it compares both broker
+identities against the restored transition, business and outbox records. The
+baseline remains authoritative and pending; the newer projection has no SQL
+authority, its handler fails, and its consumer-group offset remains uncommitted.
+The baseline's normal pending lease then republishes the same event ID, both
+broker copies remain observable, and successful handlers settle only after
+reconciliation. Separate topics prevent baseline progress from acknowledging
+past the orphan on the same partition. This is an application-owned consistent
+database-template restore drill, not Kafka rollback, atomic cross-store restore,
+managed PITR, orphan reconstruction, or exactly-once effects. Compile-only
+verification does not execute these recovery assertions.
 
 ## Ordinary and full routes
 

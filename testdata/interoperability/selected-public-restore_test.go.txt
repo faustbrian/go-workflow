@@ -1,0 +1,425 @@
+package interoperability_test
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"io/fs"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/faustbrian/go-kafka"
+	outboxkafka "github.com/faustbrian/go-transactional-outbox/adapters/kafka/v2"
+	outbox "github.com/faustbrian/go-transactional-outbox/v2"
+	outboxpostgres "github.com/faustbrian/go-transactional-outbox/v2/postgres"
+	workflow "github.com/faustbrian/go-workflow/v2"
+	workflowpostgres "github.com/faustbrian/go-workflow/v2/postgres"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	tckafka "github.com/testcontainers/testcontainers-go/modules/kafka"
+	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
+)
+
+var errRestoredAuthorityMissing = errors.New("restored application authority is missing or inconsistent")
+
+// This selected-public-only drill restores one complete, quiesced PostgreSQL
+// database. Kafka is deliberately not restored: projections newer than the
+// SQL recovery point must not authorize business reconstruction or source ack.
+func TestSelectedPublicApplicationRestoreReconcilesBeforeResuming(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	database, err := tcpostgres.Run(ctx,
+		"postgres:18.4-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15",
+		tcpostgres.WithDatabase("workflow_restore"), tcpostgres.WithUsername("workflow"),
+		tcpostgres.WithPassword("workflow"), tcpostgres.BasicWaitStrategies())
+	if err != nil {
+		t.Fatalf("start restore database: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cleanupCancel()
+		if err := database.Terminate(cleanupCtx); err != nil {
+			t.Errorf("terminate restore database: %v", err)
+		}
+	})
+	connection, err := database.ConnectionString(ctx, "sslmode=disable")
+	if err != nil {
+		t.Fatal("resolve restore database")
+	}
+	pool := restorePool(t, ctx, connection)
+	prepareRestoreSchema(t, ctx, pool)
+	store := restoreWorkflowStore(t, pool)
+	broker, err := tckafka.Run(ctx, interoperabilityKafkaImage)
+	if err != nil {
+		t.Fatalf("start restore broker: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cleanupCancel()
+		if err := broker.Terminate(cleanupCtx); err != nil {
+			t.Errorf("terminate restore broker: %v", err)
+		}
+	})
+	brokers, err := broker.Brokers(ctx)
+	if err != nil {
+		t.Fatal("resolve restore broker")
+	}
+	topic := fmt.Sprintf("workflow-restore-%d", time.Now().UnixNano())
+	// Separate topics let the authoritative projection progress without
+	// acknowledging past the orphan on the same Kafka partition.
+	orphanTopic := topic + "-outside-recovery-point"
+	for _, name := range []string{topic, orphanTopic} {
+		createInteroperabilityTopic(t, ctx, brokers, name)
+	}
+	config := interoperabilityProducerConfig(brokers, topic)
+	config.AllowedTopics = append(config.AllowedTopics, orphanTopic)
+	producer, err := kafka.NewProducer(config)
+	if err != nil {
+		t.Fatal("construct restore publisher")
+	}
+	t.Cleanup(func() {
+		if err := producer.Close(); err != nil {
+			t.Errorf("close restore publisher: %v", err)
+		}
+	})
+	publisher, err := outboxkafka.New(producer)
+	if err != nil {
+		t.Fatal("construct restore outbox adapter")
+	}
+	baseline := stageRestoreOperation(t, ctx, pool, store, "baseline", topic)
+	pool.Close()
+	// Snapshot copies the entire database to a PostgreSQL template database;
+	// all caller pools are closed so business, workflow and outbox share it.
+	if err := database.Snapshot(ctx); err != nil {
+		t.Fatalf("snapshot consistent application recovery point: %v", err)
+	}
+	pool = restorePool(t, ctx, connection)
+	store = restoreWorkflowStore(t, pool)
+	publishRestorePending(t, ctx, pool, publisher, baseline.envelope.ID)
+	newer := stageRestoreOperation(t, ctx, pool, store, "newer", orphanTopic)
+	publishRestorePending(t, ctx, pool, publisher, newer.envelope.ID)
+	pool.Close()
+	if err := database.Restore(ctx); err != nil {
+		t.Fatalf("restore complete SQL recovery point: %v", err)
+	}
+	pool = restorePool(t, ctx, connection)
+	store = restoreWorkflowStore(t, pool)
+
+	// Observe the real broker after restoring SQL, before starting any recovery
+	// publication or successful consumer handler. Kafka still retains both IDs.
+	for _, operation := range []restoreOperation{baseline, newer} {
+		records := consumeInteroperabilityRecords(t, ctx, brokers, operation.envelope.Topic, 1)
+		if interoperabilityHeader(records[0], "event-id") != operation.envelope.ID ||
+			!bytes.Equal(records[0].Value, operation.envelope.Payload) {
+			t.Fatal("SQL restore changed or erased the broker projection")
+		}
+	}
+	if err := restoredAuthority(ctx, pool, store, baseline); err != nil {
+		t.Fatalf("baseline authority did not survive: %v", err)
+	}
+	if err := restoredAuthority(ctx, pool, store, newer); !errors.Is(err, errRestoredAuthorityMissing) {
+		t.Fatalf("post-point projection was accepted as restored authority: %v", err)
+	}
+	for _, operation := range []restoreOperation{baseline, newer} {
+		query, err := workflow.NewHistoryQuery(workflow.HistoryQuerySpec{InstanceID: operation.envelope.OrderingKey, Limit: 2})
+		if err != nil {
+			t.Fatal(err)
+		}
+		page, err := store.History(ctx, query)
+		if operation.envelope.ID == newer.envelope.ID {
+			if !errors.Is(err, workflow.ErrStoreNotFound) {
+				t.Fatalf("post-point workflow history survived restore: %v", err)
+			}
+			continue
+		}
+		if err != nil || len(page.Events()) != 1 || page.HasMore() {
+			t.Fatalf("baseline workflow history was not restored: %v", err)
+		}
+		got, want := page.Events()[0], operation.transition.Events()[0]
+		if got.InstanceID() != want.InstanceID() || got.Sequence() != want.Sequence() ||
+			got.Kind() != want.Kind() || got.Definition() != want.Definition() || !got.OccurredAt().Equal(want.OccurredAt()) {
+			t.Fatal("restored workflow history changed identity")
+		}
+	}
+	var business, envelopes int
+	if err := pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM workflow.restore_business),
+		(SELECT count(*) FROM workflow.outbox_messages)`).Scan(&business, &envelopes); err != nil || business != 1 || envelopes != 1 {
+		t.Fatalf("inconsistent SQL recovery point: business=%d outbox=%d error=%v", business, envelopes, err)
+	}
+	requireRestoreOutboxState(t, ctx, pool, baseline.envelope.ID, "pending")
+
+	// A real public consumer refuses the orphan. No replay authorization or
+	// fabricated business record is introduced to make it acknowledge.
+	orphanGroup := topic + "-orphan-review"
+	orphanConsumer := restoreConsumer(t, brokers, orphanTopic, orphanGroup)
+	orphanResult, err := runRestoreConsumer(ctx, orphanConsumer, func(ctx context.Context, message kafka.ConsumedMessage) error {
+		return reconcileRestoreMessage(ctx, pool, store, newer, message)
+	})
+	if !errors.Is(err, errRestoredAuthorityMissing) || orphanResult.Committed != 0 {
+		t.Fatalf("orphan was acknowledged: result=%#v error=%v", orphanResult, err)
+	}
+	requireRestoreOffset(t, ctx, brokers, orphanGroup, orphanTopic, -1, 1)
+
+	group := topic + "-authoritative"
+	consumer := restoreConsumer(t, brokers, topic, group)
+	settle := func() {
+		t.Helper()
+		result, err := runRestoreConsumer(ctx, consumer, func(ctx context.Context, message kafka.ConsumedMessage) error {
+			return reconcileRestoreMessage(ctx, pool, store, baseline, message)
+		})
+		if err != nil || result.Committed != 1 {
+			t.Fatalf("settle authoritative projection: result=%#v error=%v", result, err)
+		}
+	}
+	settle()
+	requireRestoreOffset(t, ctx, brokers, group, topic, 1, 1)
+	// The restored pending envelope is published by its normal fenced lease,
+	// not by resetting a delivered row or authorizing an administrative replay.
+	publishRestorePending(t, ctx, pool, publisher, baseline.envelope.ID)
+	settle()
+	requireRestoreOffset(t, ctx, brokers, group, topic, 2, 2)
+	requireRestoreOffset(t, ctx, brokers, orphanGroup, orphanTopic, -1, 1)
+	requireRestoreOutboxState(t, ctx, pool, baseline.envelope.ID, "delivered")
+	records := consumeInteroperabilityRecords(t, ctx, brokers, topic, 2)
+	if interoperabilityHeader(records[0], "event-id") != baseline.envelope.ID ||
+		interoperabilityHeader(records[1], "event-id") != baseline.envelope.ID ||
+		!bytes.Equal(records[0].Value, records[1].Value) {
+		t.Fatal("restored pending intent lost its observable duplicate identity")
+	}
+}
+
+type restoreOperation struct {
+	transition workflow.Transition
+	envelope   outbox.Envelope
+}
+
+func stageRestoreOperation(t *testing.T, ctx context.Context, pool *pgxpool.Pool, store *workflowpostgres.Store, id, topic string) restoreOperation {
+	t.Helper()
+	// PostgreSQL/pgx timestamptz stores microseconds; preserve exact identity.
+	now := time.Date(2026, time.August, 11, 14, 0, 0, 123456000, time.UTC)
+	definition, err := workflow.NewDefinition(workflow.DefinitionSpec{
+		Name: "restore-order", Version: "1", Mode: workflow.Choreography,
+		Steps: []workflow.StepSpec{{Name: "approved", Kind: workflow.StepSignal, Target: "orders.approved", Timeout: time.Hour, InputLimit: 64}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	event, err := workflow.NewHistoryEvent(workflow.HistoryEventSpec{
+		Sequence: 1, InstanceID: id, Kind: workflow.EventInstanceStarted, OccurredAt: now, Definition: definition.Reference(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	transition, err := workflow.NewTransition(workflow.TransitionSpec{
+		ID: "start-" + id, InstanceID: id, Definition: definition.Reference(), Events: []workflow.HistoryEvent{event},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelope := outbox.Envelope{ID: "publish-" + id, Topic: topic, Payload: []byte(id), PayloadVersion: 1,
+		OrderingKey: id, IdempotencyKey: transition.ID(), AvailableAt: now, CreatedAt: now}
+	writer, err := outboxpostgres.NewWriter(outboxpostgres.WriterConfig{Schema: "workflow"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if err := store.Stage(ctx, tx, transition); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Insert(ctx, tx, envelope); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(ctx, "INSERT INTO workflow.restore_business (id, transition_id, event_id, payload) VALUES ($1,$2,$3,$4)",
+		id, transition.ID(), envelope.ID, envelope.Payload); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal("application commit outcome requires reconciliation")
+	}
+	return restoreOperation{transition: transition, envelope: envelope}
+}
+
+func restoredAuthority(ctx context.Context, pool *pgxpool.Pool, store *workflowpostgres.Store, operation restoreOperation) error {
+	reconciliation, err := workflow.NewTransitionReconciliation(workflow.TransitionReconciliationSpec{
+		TransitionID: operation.transition.ID(), Fingerprint: operation.transition.Fingerprint(),
+	})
+	if err != nil {
+		return err
+	}
+	outcome, err := store.ReconcileTransition(ctx, reconciliation)
+	if err != nil {
+		return err
+	}
+	if outcome != workflow.TransitionCommitted {
+		return errRestoredAuthorityMissing
+	}
+	var transitionID, eventID, key string
+	var businessPayload, outboxPayload []byte
+	err = pool.QueryRow(ctx, `SELECT business.transition_id, business.event_id, business.payload,
+		message.idempotency_key, message.payload FROM workflow.restore_business AS business
+		JOIN workflow.outbox_messages AS message ON message.id = business.event_id WHERE business.id = $1`,
+		operation.envelope.OrderingKey).Scan(&transitionID, &eventID, &businessPayload, &key, &outboxPayload)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return errRestoredAuthorityMissing
+	}
+	if err != nil {
+		return err
+	}
+	if transitionID != operation.transition.ID() || eventID != operation.envelope.ID || key != transitionID ||
+		!bytes.Equal(businessPayload, operation.envelope.Payload) || !bytes.Equal(outboxPayload, businessPayload) {
+		return errRestoredAuthorityMissing
+	}
+	return nil
+}
+
+func reconcileRestoreMessage(ctx context.Context, pool *pgxpool.Pool, store *workflowpostgres.Store, operation restoreOperation, message kafka.ConsumedMessage) error {
+	var eventID, transitionID string
+	for _, header := range message.Headers {
+		switch header.Key {
+		case "event-id":
+			eventID = string(header.Value)
+		case "idempotency-key":
+			transitionID = string(header.Value)
+		}
+	}
+	if message.Topic != operation.envelope.Topic || string(message.Key) != operation.envelope.OrderingKey ||
+		eventID != operation.envelope.ID || transitionID != operation.transition.ID() || !bytes.Equal(message.Value, operation.envelope.Payload) {
+		return errRestoredAuthorityMissing
+	}
+	return restoredAuthority(ctx, pool, store, operation)
+}
+
+func publishRestorePending(t *testing.T, ctx context.Context, pool *pgxpool.Pool, publisher *outboxkafka.Publisher, id string) {
+	t.Helper()
+	store, err := outboxpostgres.NewStore(pool, outboxpostgres.StoreConfig{Schema: "workflow", MaxClaimBatch: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	claims, err := store.Claim(ctx, outboxpostgres.ClaimRequest{Owner: "restore-operator", Limit: 1, LeaseDuration: time.Minute})
+	if err != nil || len(claims) != 1 || claims[0].Envelope.ID != id {
+		t.Fatalf("claim restored pending intent: claims=%d error=%v", len(claims), err)
+	}
+	claim := claims[0]
+	if err := publisher.Publish(ctx, claim.Envelope); err != nil {
+		t.Fatal("publication outcome requires reconciliation")
+	}
+	if err := store.MarkDelivered(ctx, outboxpostgres.LeaseRef{ID: id, Token: claim.LeaseToken}); err != nil {
+		t.Fatal("publisher succeeded but durable settlement is unconfirmed")
+	}
+}
+
+func restoreConsumer(t *testing.T, brokers []string, topic, group string) *kafka.Consumer {
+	t.Helper()
+	consumer, err := kafka.NewConsumer(kafka.ConsumerConfig{
+		Brokers: brokers, ClientID: group, GroupID: group, Topics: []string{topic}, ResetOffset: kafka.OffsetEarliest,
+		MaxPollRecords: 1, HandlerTimeout: 5 * time.Second, CommitTimeout: 5 * time.Second,
+		ShutdownTimeout: 5 * time.Second, Security: kafka.DevelopmentPlaintextSecurity(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := consumer.Close(); err != nil {
+			t.Errorf("close restore consumer: %v", err)
+		}
+	})
+	return consumer
+}
+
+func runRestoreConsumer(ctx context.Context, consumer *kafka.Consumer, handle func(context.Context, kafka.ConsumedMessage) error) (kafka.PollResult, error) {
+	for {
+		result, err := consumer.RunOnce(ctx, kafka.HandlerFunc(handle))
+		if err != nil || result.Polled > 0 {
+			return result, err
+		}
+		if err := ctx.Err(); err != nil {
+			return result, err
+		}
+	}
+}
+
+func requireRestoreOffset(t *testing.T, ctx context.Context, brokers []string, group, topic string, committed, end int64) {
+	t.Helper()
+	inspector, err := kafka.NewInspector(kafka.InspectorConfig{Brokers: brokers, ClientID: "restore-inspector", Security: kafka.DevelopmentPlaintextSecurity()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = inspector.Close() }()
+	groups, err := inspector.ConsumerGroupLag(ctx, group)
+	if err != nil || len(groups) != 1 || len(groups[0].Partitions) != 1 {
+		t.Fatalf("inspect restore group: groups=%d error=%v", len(groups), err)
+	}
+	partition := groups[0].Partitions[0]
+	if partition.Topic != topic || partition.CommittedOffset != committed || partition.EndOffset != end {
+		t.Fatalf("restore group offset=%d end=%d, want %d/%d", partition.CommittedOffset, partition.EndOffset, committed, end)
+	}
+}
+
+func requireRestoreOutboxState(t *testing.T, ctx context.Context, pool *pgxpool.Pool, id, want string) {
+	t.Helper()
+	var state string
+	if err := pool.QueryRow(ctx, "SELECT state FROM workflow.outbox_messages WHERE id=$1", id).Scan(&state); err != nil || state != want {
+		t.Fatalf("restored outbox state=%q error=%v, want %q", state, err, want)
+	}
+}
+
+func restorePool(t *testing.T, ctx context.Context, connection string) *pgxpool.Pool {
+	t.Helper()
+	pool, err := pgxpool.New(ctx, connection)
+	if err != nil {
+		t.Fatal("open restore database")
+	}
+	t.Cleanup(pool.Close)
+	if err := pool.Ping(ctx); err != nil {
+		t.Fatal("restore database is unavailable")
+	}
+	return pool
+}
+
+func restoreWorkflowStore(t *testing.T, pool *pgxpool.Pool) *workflowpostgres.Store {
+	t.Helper()
+	store, err := workflowpostgres.New(pool, workflowpostgres.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return store
+}
+
+func prepareRestoreSchema(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
+	t.Helper()
+	if _, err := pool.Exec(ctx, "CREATE SCHEMA workflow"); err != nil {
+		t.Fatal(err)
+	}
+	for _, migration := range workflowpostgres.SchemaMigrations() {
+		if _, err := pool.Exec(ctx, migration.Up); err != nil {
+			t.Fatal(err)
+		}
+	}
+	entries, err := fs.ReadDir(outboxpostgres.Migrations(), ".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		data, err := fs.ReadFile(outboxpostgres.Migrations(), entry.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+		up, _, found := strings.Cut(string(data), "-- +migrations Down")
+		if !found {
+			t.Fatal("outbox recovery migration lacks down boundary")
+		}
+		if _, err := pool.Exec(ctx, up); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := pool.Exec(ctx, `CREATE TABLE workflow.restore_business (
+		id text PRIMARY KEY, transition_id text NOT NULL, event_id text NOT NULL UNIQUE, payload bytea NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+}

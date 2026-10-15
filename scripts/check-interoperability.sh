@@ -52,6 +52,7 @@ if [[ "${mode}" == selected-public ]]; then
     mv "${task_root}/selected_test.go" "${task_root}/interoperability_test.go"
     cp "${module_root}/testdata/interoperability/selected-public.go.mod" "${task_root}/go.mod"
     cp "${module_root}/testdata/interoperability/selected-public.go.sum" "${task_root}/go.sum"
+    cp "${module_root}/testdata/interoperability/selected-public-restore_test.go.txt" "${task_root}/restore_test.go"
 fi
 cd "${task_root}"
 export GOCACHE="${task_gocache}"
@@ -64,7 +65,7 @@ if [[ "${mode}" != candidate ]]; then
     export GOENV=off
     export GOPROXY=https://proxy.golang.org
     export GOSUMDB=sum.golang.org
-    export GONOPROXY= GONOSUMDB= GOPRIVATE=
+    export GONOPROXY='' GONOSUMDB='' GOPRIVATE=''
     export GOFLAGS=-p=2
 fi
 

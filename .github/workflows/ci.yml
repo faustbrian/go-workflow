@@ -171,7 +171,12 @@ jobs:
         run: bash ./scripts/capture-interoperability-images.sh
       - name: Verify delayed-reaper cleanup regression
         run: bash ./scripts/check-interoperability-cleanup-test.sh
-      - name: Prove selected public transaction and broker recovery contracts
+      - name: Verify immutable reaper pin and preservation regression
+        run: bash ./scripts/check-interoperability-reaper-test.sh
+      - name: Pin Testcontainers reaper to immutable image
+        timeout-minutes: 2
+        run: bash ./scripts/pin-interoperability-reaper.sh
+      - name: Prove selected public transaction, broker and application restore contracts
         timeout-minutes: 20
         run: bash ./scripts/check-interoperability.sh selected-public
       - name: Remove task-owned runner images

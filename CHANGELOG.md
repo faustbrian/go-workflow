@@ -11,6 +11,10 @@ and releases use Semantic Versioning.
   composition campaign while retaining the existing v3/legacy-Outbox recipe.
   It exercises shared transaction ownership and live broker recovery without
   introducing production APIs or changing the published compatibility set.
+- Exercise a selected-public application SQL restore against retained Kafka
+  projections, rejecting post-recovery-point authority and preserving pending
+  redelivery identity before settlement. Pin the hosted reaper image by digest
+  while preserving pre-existing runner images.
 
 ### Documentation
 
