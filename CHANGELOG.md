@@ -3,6 +3,12 @@
 All notable changes are documented here. The format follows Keep a Changelog,
 and releases use Semantic Versioning.
 
+## 3.0.1 - 2026-10-22
+
+### Changed
+
+- Publish the current source and documentation with a fresh immutable tag.
+
 ## [Unreleased]
 
 ### Added
